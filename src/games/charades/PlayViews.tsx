@@ -10,6 +10,9 @@ import { colors, fonts, gradients, radius } from '../../theme';
 import {
   currentActor,
   currentTeam,
+  matchDecided,
+  roundScores,
+  roundWinners,
   turnScore,
   type CharadesAction,
   type CharadesState,
@@ -297,10 +300,6 @@ export function TurnSummaryView({ state, dispatch }: { state: CharadesState; dis
   const { teams } = state.settings;
   const nextTeam = teams[(state.teamIndex + 1) % teams.length];
   const lastInRound = state.teamIndex === teams.length - 1;
-  const projected = { ...state.scores, [team.id]: state.scores[team.id] + score };
-  const mayEnd =
-    lastInRound &&
-    (Object.values(projected).some((s) => s >= state.settings.targetPoints) || state.round >= state.settings.maxRounds);
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
@@ -339,11 +338,108 @@ export function TurnSummaryView({ state, dispatch }: { state: CharadesState; dis
         <ScorePod state={state} />
       </View>
       <Button
-        label={mayEnd ? 'SEE WHO WON 🏆' : `NEXT: ${nextTeam.name.toUpperCase()}`}
+        label={lastInRound ? `SEE WHO WON ROUND ${state.round}` : `NEXT: ${nextTeam.name.toUpperCase()}`}
         size="lg"
         onPress={() => dispatch({ type: 'NEXT_TURN' })}
         style={{ marginTop: 24 }}
       />
+    </ScrollView>
+  );
+}
+
+export function RoundOverView({ state, dispatch }: { state: CharadesState; dispatch: Dispatch }) {
+  const { round } = state;
+  const scores = roundScores(state, round);
+  const winners = roundWinners(state, round);
+  const tie = winners.length > 1;
+  const winner = winners[0];
+  const best = scores.find((s) => s.team.id === winner.id)?.score ?? 0;
+  const decided = matchDecided(state);
+  const leader = [...state.settings.teams].sort((a, b) => state.scores[b.id] - state.scores[a.id])[0];
+  const reachedTarget = state.scores[leader.id] >= state.settings.targetPoints;
+
+  return (
+    <ScrollView contentContainerStyle={styles.page}>
+      <View style={styles.handoff}>
+        <Pill label={`ROUND ${round} COMPLETE`} icon="flag" bg={colors.orange} fg="#FFE4D8" style={{ alignSelf: 'center' }} />
+        <View
+          style={[
+            styles.bigAvatar,
+            tie ? { backgroundColor: colors.surfaceHigh, shadowColor: colors.primaryStrong } : { backgroundColor: winner.color, shadowColor: winner.color },
+          ]}
+        >
+          <Text style={{ fontSize: 56 }}>{tie ? '🤝' : winner.emoji}</Text>
+        </View>
+        <Text style={styles.roundHeadline}>
+          {tie ? `ROUND ${round} IS A TIE!` : `${winner.name.toUpperCase()} WINS ROUND ${round}!`}
+        </Text>
+        <Text style={styles.handoffSub}>
+          {tie
+            ? `${winners.map((t) => shortTeamName(t.name)).join(' & ')} both scored ${best} ${Math.abs(best) === 1 ? 'point' : 'points'}`
+            : `with ${best} ${Math.abs(best) === 1 ? 'point' : 'points'} this round`}
+        </Text>
+      </View>
+
+      <View style={styles.resultsCard}>
+        <View style={styles.roundTableHead}>
+          <Text style={[type.label, { flex: 1 }]}>Team</Text>
+          <Text style={[type.label, styles.roundCol]}>Round</Text>
+          <Text style={[type.label, styles.roundCol]}>Total</Text>
+        </View>
+        {scores.map(({ team, score }) => {
+          const won = !tie && team.id === winner.id;
+          return (
+            <View key={team.id} style={[styles.resultRow, won && styles.roundRowWon]}>
+              <View style={[styles.resultMark, { backgroundColor: team.color }]}>
+                <Text style={{ fontSize: 15 }}>{team.emoji}</Text>
+              </View>
+              <Text style={[styles.resultWord, { color: won ? team.color : colors.text }]} numberOfLines={1}>
+                {team.name}
+              </Text>
+              <Text style={[styles.roundPoints, styles.roundCol]}>
+                {score > 0 ? '+' : ''}
+                {score}
+              </Text>
+              <Text style={[styles.roundTotal, styles.roundCol]}>{state.scores[team.id]}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {decided ? (
+        <>
+          <View style={styles.partyRule}>
+            <Icon name="award" size={18} color={colors.coral} />
+            <Text style={[type.body, { flex: 1, color: colors.text }]}>
+              {reachedTarget
+                ? `${leader.name} reached ${state.settings.targetPoints} points. That's game!`
+                : `That was the last of ${state.settings.maxRounds} rounds. Time to crown a champion.`}
+            </Text>
+          </View>
+          <Button label="SEE WHO WON 🏆" size="lg" onPress={() => dispatch({ type: 'END_GAME' })} style={{ marginTop: 24 }} />
+        </>
+      ) : (
+        <>
+          <Text style={styles.askAgain}>Play another round?</Text>
+          <Text style={[type.body, { textAlign: 'center' }]}>
+            First to {state.settings.targetPoints} pts wins the match.
+          </Text>
+          <Button
+            label={`YES, PLAY ROUND ${round + 1}`}
+            icon="rotate-cw"
+            size="lg"
+            onPress={() => dispatch({ type: 'NEXT_ROUND' })}
+            style={{ marginTop: 18 }}
+          />
+          <Button
+            label="No, end the game"
+            icon="flag"
+            variant="secondary"
+            onPress={() => dispatch({ type: 'END_GAME' })}
+            style={{ marginTop: 12 }}
+          />
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -469,4 +565,19 @@ const styles = StyleSheet.create({
   resultWord: { flex: 1, fontFamily: fonts.bold, color: colors.text, fontSize: 16 },
   resultSkipped: { color: colors.textDim, textDecorationLine: 'line-through' },
   resultTime: { fontFamily: fonts.semibold, color: colors.textDim, fontSize: 12 },
+  roundHeadline: {
+    fontFamily: fonts.display,
+    color: colors.text,
+    fontSize: 32,
+    lineHeight: 36,
+    marginTop: 20,
+    textAlign: 'center',
+    letterSpacing: -0.6,
+  },
+  roundTableHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, marginBottom: 10 },
+  roundCol: { width: 52, textAlign: 'right' },
+  roundRowWon: { borderWidth: 1, borderColor: '#4A3B7A' },
+  roundPoints: { fontFamily: fonts.bold, color: colors.primary, fontSize: 16 },
+  roundTotal: { fontFamily: fonts.display, color: colors.text, fontSize: 20 },
+  askAgain: { fontFamily: fonts.display, color: colors.text, fontSize: 26, textAlign: 'center', marginTop: 28, marginBottom: 4 },
 });
