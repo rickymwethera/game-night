@@ -6,7 +6,10 @@ import {
   charadesReducer,
   createCharadesGame,
   currentActor,
+  matchDecided,
   matchStats,
+  roundScores,
+  roundWinners,
   standings,
   type CharadesSettings,
   type CharadesState,
@@ -35,8 +38,14 @@ function playTurn(state: CharadesState, correct: number, skipped: number): Chara
   return charadesReducer(s, { type: 'TIME_UP' });
 }
 
-test('categories have no duplicate words', () => {
-  for (const c of CHARADES_CATEGORIES) assert.equal(new Set(c.words).size, c.words.length, c.id);
+test('no word appears twice, even across categories', () => {
+  const words = CHARADES_CATEGORIES.flatMap((c) => c.words.map((w) => w.toLowerCase()));
+  assert.equal(new Set(words).size, words.length);
+});
+
+test('every category has a full deck and a unique id', () => {
+  assert.equal(new Set(CHARADES_CATEGORIES.map((c) => c.id)).size, CHARADES_CATEGORIES.length);
+  for (const c of CHARADES_CATEGORIES) assert.ok(c.words.length >= 50, c.id);
 });
 
 test('same seed gives same deck', () => {
@@ -51,8 +60,44 @@ test('game ends after the full round in which a team reaches the target', () => 
   assert.equal(s.scores['team-1'], 5);
   assert.equal(s.phase, 'handoff', 'second team still gets its turn');
   s = charadesReducer(playTurn(s, 2, 0), { type: 'NEXT_TURN' });
+  assert.equal(s.phase, 'roundOver');
+  assert.ok(matchDecided(s));
+  assert.equal(charadesReducer(s, { type: 'NEXT_ROUND' }), s, 'no new round once the target is hit');
+  s = charadesReducer(s, { type: 'END_GAME' });
   assert.equal(s.phase, 'gameOver');
   assert.deepEqual(standings(s).map((x) => x.score), [5, 2]);
+});
+
+test('each full round announces its winner and asks before the next one', () => {
+  let s = createCharadesGame(makeSettings({ targetPoints: 100 }), 1);
+  s = charadesReducer(playTurn(s, 2, 0), { type: 'NEXT_TURN' });
+  s = charadesReducer(playTurn(s, 3, 1), { type: 'NEXT_TURN' });
+  assert.equal(s.phase, 'roundOver');
+  assert.deepEqual(roundScores(s, 1).map((x) => x.score), [2, 3]);
+  assert.deepEqual(roundWinners(s, 1).map((t) => t.id), ['team-2']);
+  assert.equal(matchDecided(s), false);
+
+  s = charadesReducer(s, { type: 'NEXT_ROUND' });
+  assert.equal(s.phase, 'handoff');
+  assert.equal(s.round, 2);
+  assert.equal(s.teamIndex, 0);
+
+  // Round 2 is scored on its own, and a draw names both teams.
+  s = charadesReducer(playTurn(s, 4, 0), { type: 'NEXT_TURN' });
+  s = charadesReducer(playTurn(s, 4, 0), { type: 'NEXT_TURN' });
+  assert.deepEqual(roundScores(s, 2).map((x) => x.score), [4, 4]);
+  assert.equal(roundWinners(s, 2).length, 2);
+
+  s = charadesReducer(s, { type: 'END_GAME' });
+  assert.equal(s.phase, 'gameOver');
+  assert.equal(s.round, 2);
+});
+
+test('the round limit stops the match even below the target', () => {
+  let s = createCharadesGame(makeSettings({ targetPoints: 100, maxRounds: 1 }), 1);
+  s = charadesReducer(playTurn(s, 1, 0), { type: 'NEXT_TURN' });
+  s = charadesReducer(playTurn(s, 1, 0), { type: 'NEXT_TURN' });
+  assert.ok(matchDecided(s));
 });
 
 test('actors rotate within a team, with a fallback name for empty teams', () => {
@@ -61,6 +106,7 @@ test('actors rotate within a team, with a fallback name for empty teams', () => 
   s = charadesReducer(playTurn(s, 1, 0), { type: 'NEXT_TURN' });
   assert.equal(currentActor(s), "Team Kifaru's actor");
   s = charadesReducer(playTurn(s, 1, 0), { type: 'NEXT_TURN' });
+  s = charadesReducer(s, { type: 'NEXT_ROUND' });
   assert.equal(currentActor(s), 'Amani');
 });
 

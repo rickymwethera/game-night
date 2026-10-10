@@ -38,7 +38,7 @@ export interface CharadesSettings {
   skipPenalty: boolean;
 }
 
-export type CharadesPhase = 'handoff' | 'playing' | 'turnSummary' | 'gameOver';
+export type CharadesPhase = 'handoff' | 'playing' | 'turnSummary' | 'roundOver' | 'gameOver';
 
 export interface CharadesState {
   phase: CharadesPhase;
@@ -68,6 +68,10 @@ export type CharadesAction =
   | { type: 'TIME_UP' }
   | { type: 'TOGGLE_RESULT'; index: number }
   | { type: 'NEXT_TURN' }
+  /** From roundOver: every team plays one more turn. */
+  | { type: 'NEXT_ROUND' }
+  /** From roundOver: stop here and show the final results. */
+  | { type: 'END_GAME' }
   | { type: 'PLAY_AGAIN' };
 
 export const DEFAULT_SETTINGS: Omit<CharadesSettings, 'teams' | 'categoryIds'> = {
@@ -214,7 +218,7 @@ export function charadesReducer(state: CharadesState, action: CharadesAction): C
     }
     case 'NEXT_TURN': {
       if (state.phase !== 'turnSummary') return state;
-      const { teams, targetPoints, maxRounds, skipPenalty } = state.settings;
+      const { teams, skipPenalty } = state.settings;
       const team = currentTeam(state);
       const actorIdx = state.actorIndex[team.id] ?? 0;
       const scores = { ...state.scores, [team.id]: state.scores[team.id] + turnScore(state.turnResults, skipPenalty) };
@@ -224,25 +228,54 @@ export function charadesReducer(state: CharadesState, action: CharadesAction): C
       ];
       const actorIndex = { ...state.actorIndex, [team.id]: actorIdx + 1 };
       const lastTeam = state.teamIndex === teams.length - 1;
-      // Everyone gets the same number of turns, so only end after a full round.
-      const finished =
-        lastTeam && (Object.values(scores).some((s) => s >= targetPoints) || state.round >= maxRounds);
       return {
         ...state,
         scores,
         history,
         actorIndex,
         turnResults: [],
-        round: finished || !lastTeam ? state.round : state.round + 1,
-        teamIndex: finished ? state.teamIndex : lastTeam ? 0 : state.teamIndex + 1,
-        phase: finished ? 'gameOver' : 'handoff',
+        // Everyone gets the same number of turns, so the round is only scored once the last team has played.
+        teamIndex: lastTeam ? state.teamIndex : state.teamIndex + 1,
+        phase: lastTeam ? 'roundOver' : 'handoff',
       };
+    }
+    case 'NEXT_ROUND': {
+      if (state.phase !== 'roundOver' || matchDecided(state)) return state;
+      return { ...state, round: state.round + 1, teamIndex: 0, phase: 'handoff' };
+    }
+    case 'END_GAME': {
+      if (state.phase !== 'roundOver') return state;
+      return { ...state, phase: 'gameOver' };
     }
     case 'PLAY_AGAIN':
       return createCharadesGame(state.settings, state.seed + 1);
     default:
       return state;
   }
+}
+
+/** True once a team has hit the target or the round limit is reached, so no further round is offered. */
+export function matchDecided(state: CharadesState): boolean {
+  const { targetPoints, maxRounds } = state.settings;
+  return Object.values(state.scores).some((s) => s >= targetPoints) || state.round >= maxRounds;
+}
+
+/** Points each team scored in one round, in team order. */
+export function roundScores(state: CharadesState, round: number): { team: Team; score: number }[] {
+  const { teams, skipPenalty } = state.settings;
+  return teams.map((team) => ({
+    team,
+    score: state.history
+      .filter((t) => t.round === round && t.teamId === team.id)
+      .reduce((n, t) => n + turnScore(t.results, skipPenalty), 0),
+  }));
+}
+
+/** The team or teams with the most points in a round. More than one means the round was tied. */
+export function roundWinners(state: CharadesState, round: number): Team[] {
+  const scores = roundScores(state, round);
+  const best = Math.max(...scores.map((s) => s.score));
+  return scores.filter((s) => s.score === best).map((s) => s.team);
 }
 
 /** Teams sorted by score, highest first. */

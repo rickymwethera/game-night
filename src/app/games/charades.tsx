@@ -9,7 +9,7 @@ import {
   type CharadesSettings,
   type CharadesState,
 } from '../../games/charades/engine';
-import { HandoffView, PlayingView, TurnSummaryView } from '../../games/charades/PlayViews';
+import { HandoffView, PlayingView, RoundOverView, TurnSummaryView } from '../../games/charades/PlayViews';
 import { ResultsView } from '../../games/charades/ResultsView';
 import { SetupView } from '../../games/charades/SetupView';
 import { CHARADES_CATEGORIES } from '../../games/charades/words';
@@ -75,6 +75,7 @@ export default function CharadesScreen() {
       {state.phase === 'handoff' && <HandoffView state={state} dispatch={dispatch} />}
       {state.phase === 'playing' && <PlayingView state={state} dispatch={dispatch} soundOn={soundOn} />}
       {state.phase === 'turnSummary' && <TurnSummaryView state={state} dispatch={dispatch} />}
+      {state.phase === 'roundOver' && <RoundOverView state={state} dispatch={dispatch} />}
       {state.phase === 'gameOver' && (
         <ResultsView state={state} dispatch={dispatch} onChooseGame={() => router.replace('/games')} />
       )}
