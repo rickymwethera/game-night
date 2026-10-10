@@ -14,6 +14,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import '../core/account'; // restores a saved sign-in, if accounts are set up
 import { colors } from '../theme';
 
 export default function RootLayout() {

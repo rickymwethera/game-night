@@ -25,6 +25,19 @@ npx expo start        # scan the QR code with Expo Go on your phone
 npx expo start --web  # or open it in a browser
 ```
 
+## Accounts (optional)
+
+Playing never needs an account. The header's profile button opens **Profile & Settings**, where anyone can set a display name and avatar (saved on the phone), switch buzz & haptics and 18+ decks, and clear game history. An account backs up the name and avatar with [Supabase](https://supabase.com) so they follow the player to another phone, and can be deleted from the same screen.
+
+Accounts stay switched off until the app has Supabase keys. To turn them on:
+
+1. Create a free project at supabase.com.
+2. In the project's **SQL Editor**, run `supabase/migrations/20261010000000_accounts.sql`. It creates the `profiles` table (each player can only read and edit their own row) and the `delete_account` function used by "Delete account".
+3. Copy `.env.example` to `.env.local` and fill in the project URL and publishable key from **Project Settings > API Keys**.
+4. Restart `npx expo start`.
+
+New Supabase projects ask people to confirm their email before the first sign-in; the app tells them to check their inbox. You can turn that off under **Authentication > Sign In / Providers > Email**.
+
 ## Checks
 
 ```bash
@@ -48,7 +61,12 @@ src/games/charades/
   ResultsView.tsx         Winner, MVPs, highlights and rematch
 src/components/ui.tsx     Shared header, buttons, pills, toggles
 src/core/types.ts         Shared Team types
-src/core/store.ts         Game history and preferences, saved on the phone
+src/core/store.ts         Game history, profile and preferences, saved on the phone
+src/core/account.ts       Optional accounts: sign up, sign in, profile sync, delete
+src/core/supabase.ts      Supabase client (null when no keys are set)
+src/app/profile.tsx       Profile & Settings
+src/app/sign-in.tsx       Create account / sign in
+supabase/migrations/      Database setup for accounts
 src/theme.ts              Colors and fonts from the designs
 ```
 
