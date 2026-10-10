@@ -1,7 +1,9 @@
 import Feather from '@expo/vector-icons/Feather';
+import { router } from 'expo-router';
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { useAppState } from '../core/store';
 import { colors, fonts, radius, spacing } from '../theme';
 
 export type IconName = ComponentProps<typeof Feather>['name'];
@@ -85,11 +87,29 @@ export function CircleButton({
   );
 }
 
+/** The round button in the top bar. Shows the player's avatar and opens Profile & Settings. */
+export function ProfileButton({ size = 40 }: { size?: number }) {
+  const avatar = useAppState((s) => s.profile.avatar);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Profile and settings"
+      onPress={() => router.push('/profile')}
+      style={({ pressed }) => [
+        styles.circle,
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+      ]}
+    >
+      <Text style={{ fontSize: size * 0.5 }}>{avatar}</Text>
+    </Pressable>
+  );
+}
+
 /** Top bar. "brand" shows the logo and section name; "session" is the in-game bar with a back button. */
 export function AppHeader(
   props:
     | { variant: 'brand'; section: string; right?: ReactNode }
-    | { variant: 'session'; title: string; onBack: () => void; backIcon?: IconName },
+    | { variant: 'session'; title: string; onBack: () => void; backIcon?: IconName; hideProfile?: boolean },
 ) {
   if (props.variant === 'session') {
     return (
@@ -99,7 +119,7 @@ export function AppHeader(
         <Text style={styles.sessionTitle} numberOfLines={1}>
           {props.title}
         </Text>
-        <CircleButton icon="user" label="Profile" variant="primary" size={40} />
+        {!props.hideProfile && <ProfileButton />}
       </View>
     );
   }
@@ -114,7 +134,7 @@ export function AppHeader(
         <Text style={styles.brandSection}>{props.section}</Text>
       </View>
       {props.right}
-      <CircleButton icon="user" label="Profile" variant="primary" size={40} />
+      <ProfileButton />
     </View>
   );
 }
@@ -336,6 +356,29 @@ export function Stepper({
   );
 }
 
+export function TextField({
+  label,
+  icon,
+  right,
+  ...input
+}: ComponentProps<typeof TextInput> & { label: string; icon?: IconName; right?: ReactNode }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={type.label}>{label}</Text>
+      <View style={styles.field}>
+        {icon && <Icon name={icon} size={18} color={colors.textMuted} />}
+        <TextInput
+          placeholderTextColor={colors.textDim}
+          accessibilityLabel={label}
+          {...input}
+          style={[styles.fieldInput, input.style]}
+        />
+        {right}
+      </View>
+    </View>
+  );
+}
+
 export const type = StyleSheet.create({
   display: { fontFamily: fonts.display, color: colors.text, letterSpacing: -0.5 },
   body: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 15, lineHeight: 22 },
@@ -428,5 +471,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     padding: 4,
   },
+  field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.surfaceLowest,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 16,
+  },
+  fieldInput: { flex: 1, paddingVertical: 14, fontFamily: fonts.medium, fontSize: 15, color: colors.text },
   stepperValue: { fontFamily: fonts.display, fontSize: 20, color: colors.text, minWidth: 32, textAlign: 'center' },
 });
