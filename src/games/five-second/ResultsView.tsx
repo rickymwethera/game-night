@@ -1,0 +1,209 @@
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Button, Icon, Pill, type } from '../../components/ui';
+import { colors, fonts, radius } from '../../theme';
+import { getPlayer, matchStats, standings, type FiveAction, type FiveState } from './engine';
+
+export function ResultsView({
+  state,
+  dispatch,
+  onChooseGame,
+}: {
+  state: FiveState;
+  dispatch: (a: FiveAction) => void;
+  onChooseGame: () => void;
+}) {
+  const ranked = standings(state);
+  const stats = matchStats(state);
+  const top = ranked[0].score;
+  const winners = ranked.filter((r) => r.score === top).map((r) => r.player);
+  const tie = winners.length > 1;
+
+  const share = () => {
+    const lines = ranked.map(({ player, score }, i) => `${i + 1}. ${player.emoji} ${player.name}: ${score} pts`);
+    Share.share({
+      message: `⏱️ Game Night 5-Second Challenge\n${tie ? "It's a tie!" : `${winners[0].name} wins!`}\n\n${lines.join('\n')}\n\n${stats.nailed} of ${stats.attempts} tries beat the buzzer.`,
+    }).catch(() => {});
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.page}>
+      <View style={styles.hero}>
+        <View style={styles.halo}>
+          <Text style={{ fontSize: 40 }}>{tie ? '🤝' : '🏆'}</Text>
+        </View>
+        <Pill
+          label={tie ? 'DEAD HEAT' : 'QUICKEST MIND IN THE ROOM'}
+          icon="award"
+          bg={colors.orange}
+          fg="#FFE4D8"
+          style={{ alignSelf: 'center', marginTop: 18 }}
+        />
+        <Text style={styles.victory}>
+          {!tie
+            ? `${winners[0].name.toUpperCase()} WINS! 🏆`
+            : winners.length === 2
+              ? `${winners[0].name.toUpperCase()} & ${winners[1].name.toUpperCase()} TIE!`
+              : `${winners.length}-WAY TIE AT THE TOP!`}
+        </Text>
+        <View style={styles.statsRow}>
+          <Stat value={state.history.length} label={state.history.length === 1 ? 'Turn' : 'Turns'} color={colors.text} />
+          <Stat value={stats.nailed} label="Beat the buzzer" color={colors.primary} />
+          <Stat value={stats.steals} label={stats.steals === 1 ? 'Steal' : 'Steals'} color={colors.pink} />
+        </View>
+      </View>
+
+      {ranked.map(({ player, score }, i) => {
+        const first = score === top;
+        return (
+          <View key={player.id} style={[styles.row, first && styles.rowFirst]}>
+            <Text style={styles.place}>{i + 1}</Text>
+            <View style={[styles.avatar, { backgroundColor: player.color }]}>
+              <Text style={{ fontSize: 20 }}>{player.emoji}</Text>
+            </View>
+            <Text style={styles.name} numberOfLines={1}>
+              {player.name}
+            </Text>
+            <View style={[styles.badge, { backgroundColor: first ? colors.primaryStrong : colors.surfaceHigh }]}>
+              <Text style={[styles.badgeText, { color: first ? '#1A0050' : colors.text }]}>
+                {score} {score === 1 ? 'PT' : 'PTS'}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+
+      {(stats.fastest || stats.thief || stats.frozen) && (
+        <View style={styles.highlightsHead}>
+          <Icon name="zap" size={18} color={colors.pink} />
+          <Text style={styles.highlightsTitle}>HIGHLIGHTS</Text>
+        </View>
+      )}
+      {stats.fastest && (
+        <Highlight
+          icon="⚡"
+          title="Fastest Fingers"
+          body={`${stats.fastest.player.name} named 3 ${stats.fastest.prompt} in ${(stats.fastest.ms / 1000).toFixed(1)}s.`}
+        />
+      )}
+      {stats.thief && (
+        <Highlight
+          icon="🦊"
+          title="Master Thief"
+          body={`${stats.thief.player.name} stole ${stats.thief.steals} ${stats.thief.steals === 1 ? 'point' : 'points'} from friends.`}
+        />
+      )}
+      {stats.frozen && (
+        <Highlight
+          icon="🥶"
+          title="Brain Freeze"
+          body={
+            stats.frozen.times === 1
+              ? `${stats.frozen.player.name} couldn't name a single one of "${stats.frozen.prompt}".`
+              : `${stats.frozen.player.name} froze completely ${stats.frozen.times} times, starting with "${stats.frozen.prompt}".`
+          }
+        />
+      )}
+
+      <Text style={[type.label, { marginTop: 24, marginBottom: 4 }]}>Every turn</Text>
+      {state.history.map((t, i) => {
+        const stolenBy = t.attempts.find((a) => a.steal && a.success);
+        const won = t.attempts.find((a) => a.success);
+        const p = getPlayer(state, t.playerId)!;
+        return (
+          <View key={i} style={styles.turnRow}>
+            <Text style={styles.turnNo}>R{t.round}</Text>
+            <Text style={styles.turnPrompt} numberOfLines={1}>
+              {p.emoji} {t.prompt.text}
+            </Text>
+            <Pill
+              label={stolenBy ? `Stolen by ${getPlayer(state, stolenBy.playerId)?.name}` : won ? 'Nailed' : 'Missed'}
+              bg={stolenBy ? colors.onPink : won ? '#3A2F55' : colors.surfaceHigh}
+              fg={stolenBy ? colors.pink : won ? colors.primary : colors.textMuted}
+            />
+          </View>
+        );
+      })}
+
+      <Button label="PLAY AGAIN" icon="rotate-cw" size="lg" onPress={() => dispatch({ type: 'PLAY_AGAIN' })} style={{ marginTop: 28 }} />
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+        <Button label="Share" icon="share-2" variant="secondary" onPress={share} style={{ flex: 1 }} />
+        <Button label="Other games" icon="grid" variant="secondary" onPress={onChooseGame} style={{ flex: 1 }} />
+      </View>
+    </ScrollView>
+  );
+}
+
+function Stat({ value, label, color }: { value: number; label: string; color: string }) {
+  return (
+    <View style={{ alignItems: 'center', flex: 1 }}>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function Highlight({ icon, title, body }: { icon: string; title: string; body: string }) {
+  return (
+    <View style={styles.highlight}>
+      <View style={styles.highlightIcon}>
+        <Text style={{ fontSize: 20 }}>{icon}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.highlightTitle}>{title}</Text>
+        <Text style={[type.body, { fontSize: 14 }]}>{body}</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: { padding: 20, paddingBottom: 40 },
+  hero: { alignItems: 'center', paddingVertical: 20 },
+  halo: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.coral,
+    shadowOpacity: 0.4,
+    shadowRadius: 30,
+  },
+  victory: { fontFamily: fonts.display, color: colors.text, fontSize: 30, textAlign: 'center', marginTop: 12, letterSpacing: -0.6 },
+  statsRow: { flexDirection: 'row', alignSelf: 'stretch', marginTop: 20, backgroundColor: colors.surface, borderRadius: radius.lg, paddingVertical: 14 },
+  statValue: { fontFamily: fonts.display, fontSize: 26 },
+  statLabel: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 12, textAlign: 'center' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
+  },
+  rowFirst: { borderColor: colors.primaryStrong, backgroundColor: '#2A2236' },
+  place: { width: 18, fontFamily: fonts.display, color: colors.textMuted, fontSize: 16, textAlign: 'center' },
+  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  name: { flex: 1, fontFamily: fonts.bold, color: colors.text, fontSize: 16 },
+  badge: { borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
+  badgeText: { fontFamily: fonts.extrabold, fontSize: 13 },
+  highlightsHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 28, marginBottom: 10 },
+  highlightsTitle: { fontFamily: fonts.display, color: colors.text, fontSize: 18, letterSpacing: 0.4 },
+  highlight: { flexDirection: 'row', gap: 12, backgroundColor: colors.surface, borderRadius: radius.md, padding: 14, marginBottom: 8 },
+  highlightIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceHighest, alignItems: 'center', justifyContent: 'center' },
+  highlightTitle: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 16 },
+  turnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surfaceHigh,
+  },
+  turnNo: { fontFamily: fonts.bold, color: colors.textDim, fontSize: 12, width: 24 },
+  turnPrompt: { flex: 1, fontFamily: fonts.bold, color: colors.text, fontSize: 14 },
+});

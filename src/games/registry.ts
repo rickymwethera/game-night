@@ -100,9 +100,9 @@ export const GAMES: GameInfo[] = [
   {
     id: 'five-second',
     title: '5-Second Challenge',
-    tagline: 'Rapid fire brain freeze.',
+    tagline: 'Name three. Five seconds. Go!',
     description:
-      'Name THREE things in a category before the unforgiving buzzer sounds! Brain freezes, stuttering and non-stop laughter guaranteed.',
+      'Name THREE things in a category before the buzzer! 240 Kenyan and global prompts, steals for the next player, and non-stop brain freezes.',
     emoji: '⏱️',
     icon: 'clock',
     image: require('../../assets/images/game-five-second.jpg'),
@@ -110,11 +110,16 @@ export const GAMES: GameInfo[] = [
     players: '2–12 Players',
     pills: [
       { label: '5s Buzzer', icon: 'zap' },
-      { label: 'Sudden Death', icon: 'alert-triangle' },
+      { label: 'Steals', icon: 'shuffle' },
+      { label: '8 Packs', icon: 'layers' },
     ],
-    rules: ['Get a category.', 'Name three things before five seconds run out.', 'Fail and the next player can steal.'],
+    rules: [
+      'Pass the phone. A category pops up and the five seconds start.',
+      'Name three things that fit. Everyone else taps once for each answer.',
+      'Miss, and the next player can steal the point. Most points wins.',
+    ],
     tags: ['quick', 'brainy'],
-    available: false,
+    available: true,
   },
   {
     id: 'trivia',
