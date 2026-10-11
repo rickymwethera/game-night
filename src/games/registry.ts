@@ -150,6 +150,29 @@ export const GAMES: GameInfo[] = [
     tags: ['acting', 'social'],
     available: false,
   },
+  {
+    id: 'flags',
+    title: 'Guess the Flag',
+    tagline: 'Every flag on Earth. Name it fast.',
+    description:
+      'All 197 country flags, offline. Play the whole world or pick one continent, then race the clock to name each flag from four choices.',
+    emoji: '🏳️',
+    icon: 'flag',
+    badge: { label: 'NEW • 197 FLAGS', icon: 'globe', bg: '#1F3A4A', fg: '#BFE6FF' },
+    players: '1–4 Teams',
+    pills: [
+      { label: 'Pick a Continent', icon: 'globe' },
+      { label: 'Timer', icon: 'clock' },
+      { label: 'Solo or Teams', icon: 'users' },
+    ],
+    rules: [
+      'Pick the whole world or one continent.',
+      'Each team gets a run of flags. Tap the right country from four choices.',
+      'One point per correct flag. Most points after every turn wins.',
+    ],
+    tags: ['brainy', 'quick'],
+    available: true,
+  },
 ];
 
 export function getGame(id: GameId): GameInfo {
