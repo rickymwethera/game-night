@@ -108,7 +108,7 @@ export function ProfileButton({ size = 40 }: { size?: number }) {
 /** Top bar. "brand" shows the logo and app name; "session" is the in-game bar with a back button. */
 export function AppHeader(
   props:
-    | { variant: 'brand'; right?: ReactNode }
+    | { variant: 'brand' }
     | { variant: 'session'; title: string; onBack: () => void; backIcon?: IconName; hideProfile?: boolean },
 ) {
   if (props.variant === 'session') {
@@ -126,7 +126,6 @@ export function AppHeader(
     <View style={styles.header}>
       <Logo size={32} />
       <Text style={styles.brandTitle}>Game Night</Text>
-      {props.right}
       <ProfileButton />
     </View>
   );

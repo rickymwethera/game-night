@@ -1,27 +1,16 @@
 import { router } from 'expo-router';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { AppHeader, Button, CircleButton, Icon, Screen, SectionHeader } from '../../components/ui';
-import { appActions, useAppState } from '../../core/store';
+import { AppHeader, Button, Icon, Screen, SectionHeader } from '../../components/ui';
+import { useAppState } from '../../core/store';
 import { GAMES, getGame, type GameInfo } from '../../games/registry';
 import { colors, fonts, radius } from '../../theme';
 
 const PLAYABLE = GAMES.filter((g) => g.available);
 
 export default function HomeScreen() {
-  const soundOn = useAppState((s) => s.soundOn);
   return (
     <Screen>
-      <AppHeader
-        variant="brand"
-        right={
-          <CircleButton
-            icon={soundOn ? 'volume-2' : 'volume-x'}
-            label={soundOn ? 'Turn buzz off' : 'Turn buzz on'}
-            onPress={() => appActions.setSoundOn(!soundOn)}
-            size={40}
-          />
-        }
-      />
+      <AppHeader variant="brand" />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>What are we playing?</Text>
         <Button
