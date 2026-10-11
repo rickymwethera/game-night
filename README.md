@@ -7,13 +7,15 @@ One app, endless party games. Built with React Native, Expo and TypeScript, so i
 | Game | Status |
 | --- | --- |
 | Charades | Playable |
-| Spy Among Us | Coming soon |
+| Spy Among Us | Playable |
 | Trivia | Coming soon |
 | Dare or Challenge | Coming soon |
 | Who's Most Likely To? | Coming soon |
 | Five-Second Challenge | Coming soon |
 
 Charades ships with six decks (Kenyan Celebrities, Sheng, Kenyan Music, Football, Food, General), 2 to 4 named teams with players, actor rotation, 45/60/90 second turns, target points, an optional skip penalty, pause, a turn summary where a wrong tap can be fixed, and a results screen with MVPs and party highlights. Finished games are saved to the History tab on the phone.
+
+Spy Among Us is pass-the-phone for 3 to 10 players. Each player peeks at the secret word in turn, except the spy, who only sees which pack it comes from (the hint can be switched off). After a timed discussion, players vote by secret ballot or by pointing together; a tie goes to one runoff, and a second tie lets the spy escape. A caught spy gets one guess at the word from eight options to steal the round, and the spy can also own up mid-discussion to guess early. It ships with eight word packs: Kenyan Places, Kenyan Eats, Everyday Kenya, Music & Sport KE, Places, Food & Drink, Animals and Jobs.
 
 The look follows the Figma designs (dark Material-style palette, Bricolage Grotesque headings, Plus Jakarta Sans body text). Images in `assets/images/` were cropped from the exported design screens and should be swapped for the original files.
 
@@ -51,6 +53,7 @@ npm test
 src/app/                  Screens (Expo Router: every file is a route)
   (tabs)/                 Home, Games, Decks and History tabs with the bottom nav
   games/charades.tsx      Charades
+  games/spy-among-us.tsx  Spy Among Us
   games/[id].tsx          "Coming soon" page for games not built yet
 src/games/registry.ts     The list of games shown on the home screen
 src/games/charades/
@@ -59,6 +62,12 @@ src/games/charades/
   SetupView.tsx           Players & squads, deck and rules setup
   PlayViews.tsx           Hand-off, playing (timer ring) and turn summary
   ResultsView.tsx         Winner, MVPs, highlights and rematch
+src/games/spy-among-us/
+  words.ts                Word packs (edit here to add words or packs)
+  engine.ts               Game rules as a pure reducer
+  SetupView.tsx           Players, word packs and rules setup
+  PlayViews.tsx           Peek, discussion, voting, verdict, spy's guess and round result
+  ResultsView.tsx         Final standings and spy files
 src/components/ui.tsx     Shared header, buttons, pills, toggles
 src/core/types.ts         Shared Team types
 src/core/store.ts         Game history, profile and preferences, saved on the phone

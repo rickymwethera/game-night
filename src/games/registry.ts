@@ -64,18 +64,19 @@ export const GAMES: GameInfo[] = [
     icon: 'eye',
     image: require('../../assets/images/game-spy.jpg'),
     badge: { label: 'PASS-THE-PHONE', icon: 'smartphone', bg: '#2D303A', fg: '#E1E2EC' },
-    players: '4–10 Players',
+    players: '3–10 Players',
     pills: [
       { label: 'Social Deduction', icon: 'help-circle' },
       { label: 'Single Device', icon: 'smartphone' },
+      { label: '8 Word Packs', icon: 'layers' },
     ],
     rules: [
       'Everyone peeks at the phone in turn. One player is secretly the spy.',
-      'Take turns giving a one-word clue about the secret word.',
-      'Vote out the spy before they guess the word.',
+      'Ask each other questions about the word. The spy has to bluff.',
+      'Vote out the spy. If caught, the spy gets one guess at the word to steal the round.',
     ],
     tags: ['social'],
-    available: false,
+    available: true,
   },
   {
     id: 'most-likely-to',
