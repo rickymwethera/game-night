@@ -1,11 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Icon, Pill, type } from '../../components/ui';
+import { Button, Icon, type } from '../../components/ui';
 import { shortTeamName } from '../../core/types';
 import { colors, fonts, radius } from '../../theme';
 import {
-  currentStreak,
   currentTeam,
   getCountry,
   getRegion,
@@ -29,11 +28,11 @@ function buzz(enabled: boolean, kind: 'success' | 'warning' | 'light') {
 function ScorePod({ state }: { state: FlagsState }) {
   return (
     <View style={styles.scorePod}>
-      {state.settings.teams.map((t, i) => (
+      {state.settings.teams.map((t) => (
         <View key={t.id} style={styles.podItem}>
-          {i > 0 && <View style={styles.podDot} />}
-          <Text style={[styles.podName, { color: t.color }]} numberOfLines={1}>
-            {shortTeamName(t.name).toUpperCase()}
+          <View style={[styles.podDot, { backgroundColor: t.color }]} />
+          <Text style={styles.podName} numberOfLines={1}>
+            {shortTeamName(t.name)}
           </Text>
           <Text style={styles.podScore}>{state.scores[t.id]}</Text>
         </View>
@@ -44,31 +43,22 @@ function ScorePod({ state }: { state: FlagsState }) {
 
 function Hud({ state }: { state: FlagsState }) {
   const team = currentTeam(state);
-  const { flagsPerTurn, region, rounds } = state.settings;
+  const { flagsPerTurn, rounds } = state.settings;
   const flagNumber = Math.min(flagsPerTurn, state.turnAnswers.length + (state.phase === 'question' ? 1 : 0));
-  const streak = currentStreak(state.turnAnswers);
   return (
     <View style={styles.hud}>
       <View style={styles.hudRow}>
         <View style={[styles.avatar, { backgroundColor: team.color }]}>
-          <Text style={{ fontSize: 22 }}>{team.emoji}</Text>
+          <Text style={{ fontSize: 16 }}>{team.emoji}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.hudTeam, { color: team.color }]} numberOfLines={1}>
-            {team.name.toUpperCase()} ●
-          </Text>
-          <Text style={styles.hudSub} numberOfLines={1}>
-            Flag <Text style={{ color: colors.primary }}>{flagNumber}</Text> of {flagsPerTurn} • {getRegion(region).title}
-          </Text>
-        </View>
-        {streak >= 2 && <Pill label={`${streak} IN A ROW`} icon="zap" bg={colors.orange} fg="#FFE4D8" />}
+        <Text style={styles.hudTeam} numberOfLines={1}>
+          {team.name}
+        </Text>
+        <Text style={styles.hudSub}>
+          {rounds > 1 ? `Round ${state.round} · ` : ''}Flag {flagNumber} of {flagsPerTurn}
+        </Text>
       </View>
       {state.settings.teams.length > 1 && <ScorePod state={state} />}
-      {rounds > 1 && (
-        <Text style={[type.label, { textAlign: 'center', marginTop: 8 }]}>
-          Round {state.round} of {rounds}
-        </Text>
-      )}
     </View>
   );
 }
@@ -80,24 +70,14 @@ export function HandoffView({ state, dispatch }: { state: FlagsState; dispatch: 
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.handoff}>
-        <Pill
-          label={solo ? 'GET READY' : 'PASS THE PHONE'}
-          icon={solo ? 'flag' : 'smartphone'}
-          bg="#3A2F55"
-          fg={colors.primary}
-          style={{ alignSelf: 'center' }}
-        />
-        <View style={[styles.bigAvatar, { backgroundColor: team.color, shadowColor: team.color }]}>
-          <Text style={{ fontSize: 56 }}>{team.emoji}</Text>
+        <Text style={type.label}>{solo ? 'Get ready' : 'Pass the phone to'}</Text>
+        <View style={[styles.bigAvatar, { backgroundColor: team.color }]}>
+          <Text style={{ fontSize: 40 }}>{team.emoji}</Text>
         </View>
         <Text style={styles.handoffName}>{team.name}</Text>
         <Text style={styles.handoffSub}>
-          {flagsPerTurn} flags from <Text style={{ color: colors.coral }}>{getRegion(region).title}</Text>
-        </Text>
-        <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
-          {answerSeconds > 0
-            ? `Pick the right country before the ${answerSeconds}-second timer runs out. Teammates can help, rivals stay quiet!`
-            : 'No timer this game. Talk it over, then pick the right country. Rivals stay quiet!'}
+          {flagsPerTurn} flags · {getRegion(region).title}
+          {answerSeconds > 0 ? ` · ${answerSeconds}s each` : ''}
         </Text>
       </View>
       {!solo && (
@@ -105,11 +85,7 @@ export function HandoffView({ state, dispatch }: { state: FlagsState; dispatch: 
           <ScorePod state={state} />
         </View>
       )}
-      <Button
-        label="I'M READY • SHOW THE FLAG"
-        size="lg"
-        onPress={() => dispatch({ type: 'START_TURN', now: Date.now() })}
-      />
+      <Button label="Show the flag" size="lg" onPress={() => dispatch({ type: 'START_TURN', now: Date.now() })} />
     </ScrollView>
   );
 }
@@ -134,7 +110,7 @@ function TimerBar({ endsAt, total, onTimeUp }: { endsAt: number; total: number; 
 
   const secondsLeft = Math.ceil(msLeft / 1000);
   const urgent = secondsLeft <= 3;
-  const color = urgent ? colors.pinkStrong : colors.coral;
+  const color = urgent ? colors.danger : colors.primary;
   return (
     <View style={styles.timerRow}>
       <View style={styles.timerTrack}>
@@ -192,13 +168,13 @@ export function QuestionView({ state, dispatch, soundOn }: { state: FlagsState; 
       {state.endsAt != null ? (
         <TimerBar endsAt={state.endsAt} total={state.settings.answerSeconds} onTimeUp={onTimeUp} />
       ) : revealed && last ? (
-        <View style={[styles.verdict, { backgroundColor: last.correct ? '#1E3A2C' : '#3A1F24' }]}>
+        <View style={styles.verdict}>
           <Icon name={last.correct ? 'check-circle' : last.picked ? 'x-circle' : 'clock'} size={20} color={last.correct ? colors.success : colors.danger} />
           <Text style={[styles.verdictText, { color: last.correct ? colors.success : colors.danger }]}>
-            {last.correct ? 'Correct! +1 point' : last.picked ? `Not quite. It's ${answerName}.` : `Time's up! It's ${answerName}.`}
+            {last.correct ? 'Correct' : last.picked ? `It's ${answerName}` : `Time's up. It's ${answerName}`}
           </Text>
           <Button
-            label={turnDone ? 'DONE' : 'NEXT'}
+            label={turnDone ? 'Done' : 'Next'}
             iconRight="arrow-right"
             size="sm"
             onPress={() => dispatch({ type: 'NEXT', now: Date.now() })}
@@ -206,7 +182,7 @@ export function QuestionView({ state, dispatch, soundOn }: { state: FlagsState; 
           />
         </View>
       ) : (
-        <Text style={styles.prompt}>WHICH COUNTRY IS THIS?</Text>
+        <Text style={styles.prompt}>Which country is this?</Text>
       )}
 
       <View style={styles.options}>
@@ -231,15 +207,15 @@ export function QuestionView({ state, dispatch, soundOn }: { state: FlagsState; 
               <Text
                 style={[
                   styles.optionText,
-                  revealed && isAnswer && { color: '#06301A' },
-                  revealed && isPicked && !isAnswer && { color: '#3D0A10' },
+                  revealed && isAnswer && { color: colors.surfaceLowest },
+                  revealed && isPicked && !isAnswer && { color: colors.surfaceLowest },
                 ]}
                 numberOfLines={2}
               >
                 {getCountry(code).name}
               </Text>
               {revealed && (isAnswer || isPicked) && (
-                <Icon name={isAnswer ? 'check' : 'x'} size={18} color={isAnswer ? '#06301A' : '#3D0A10'} />
+                <Icon name={isAnswer ? 'check' : 'x'} size={18} color={isAnswer ? colors.surfaceLowest : colors.surfaceLowest} />
               )}
             </Pressable>
           );
@@ -261,18 +237,14 @@ export function TurnOverView({ state, dispatch }: { state: FlagsState; dispatch:
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.summaryHead}>
-        <Pill label="TURN COMPLETE" icon="flag" bg={colors.orange} fg="#FFE4D8" style={{ alignSelf: 'center' }} />
         <Text style={styles.summaryScore}>
           {correct}/{total}
         </Text>
-        <Text style={styles.summarySub}>
-          flags named by <Text style={{ color: team.color }}>{team.name}</Text>
-        </Text>
+        <Text style={styles.summarySub}>{team.name}</Text>
       </View>
       <View style={styles.resultsCard}>
-        <Text style={[type.label, { marginBottom: 10 }]}>This turn's flags</Text>
         {turn?.answers.map((a, i) => (
-          <View key={`${a.code}-${i}`} style={styles.resultRow}>
+          <View key={`${a.code}-${i}`} style={[styles.resultRow, i > 0 && styles.resultDivider]}>
             <Image source={FLAG_IMAGES[a.code]} style={styles.resultFlag} />
             <View style={{ flex: 1 }}>
               <Text style={styles.resultName}>{getCountry(a.code).name}</Text>
@@ -280,20 +252,17 @@ export function TurnOverView({ state, dispatch }: { state: FlagsState; dispatch:
                 <Text style={styles.resultMiss}>{a.picked ? `Picked ${getCountry(a.picked).name}` : 'Ran out of time'}</Text>
               )}
             </View>
-            <View style={[styles.resultMark, { backgroundColor: a.correct ? colors.primary : colors.surfaceHighest }]}>
-              <Icon name={a.correct ? 'check' : 'x'} size={14} color={a.correct ? colors.onPrimary : colors.coral} />
-            </View>
+            <Icon name={a.correct ? 'check' : 'x'} size={18} color={a.correct ? colors.success : colors.danger} />
           </View>
         ))}
       </View>
       {teams.length > 1 && (
-        <View style={[styles.hud, { marginTop: 16 }]}>
-          <Text style={[type.label, { marginBottom: 10 }]}>Scoreboard</Text>
+        <View style={{ marginTop: 16 }}>
           <ScorePod state={state} />
         </View>
       )}
       <Button
-        label={finished ? 'SEE FINAL RESULTS 🏆' : `NEXT: ${nextTeam.name.toUpperCase()}`}
+        label={finished ? 'See results' : `Next: ${nextTeam.name}`}
         size="lg"
         onPress={() => dispatch({ type: 'NEXT_TURN' })}
         style={{ marginTop: 24 }}
@@ -304,59 +273,30 @@ export function TurnOverView({ state, dispatch }: { state: FlagsState; dispatch:
 
 const styles = StyleSheet.create({
   page: { padding: 20, paddingBottom: 40 },
-  hud: { backgroundColor: colors.surfaceLow, borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: colors.surfaceHigh },
-  hudRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  hudTeam: { fontFamily: fonts.extrabold, fontSize: 14, letterSpacing: 0.8 },
-  hudSub: { fontFamily: fonts.medium, color: colors.text, fontSize: 15 },
-  scorePod: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.surfaceHigh,
-    borderRadius: radius.pill,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 10,
-  },
+  hud: { gap: 10 },
+  hudRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatar: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  hudTeam: { flex: 1, fontFamily: fonts.semibold, color: colors.text, fontSize: 16 },
+  hudSub: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 13 },
+  scorePod: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 16 },
   podItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  podDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.textDim, marginHorizontal: 4 },
-  podName: { fontFamily: fonts.extrabold, fontSize: 12, letterSpacing: 0.8 },
-  podScore: { fontFamily: fonts.display, color: colors.text, fontSize: 22 },
+  podDot: { width: 8, height: 8, borderRadius: 4 },
+  podName: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 13 },
+  podScore: { fontFamily: fonts.bold, color: colors.text, fontSize: 15 },
   handoff: { alignItems: 'center', paddingVertical: 32 },
-  bigAvatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-    shadowOpacity: 0.55,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
-  },
-  handoffName: { fontFamily: fonts.display, color: colors.text, fontSize: 40, marginTop: 20, textAlign: 'center', letterSpacing: -0.8 },
-  handoffSub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 16, marginTop: 2 },
-  flagCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 32,
-    padding: 14,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: colors.surfaceHigh,
-  },
-  flagFrame: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, overflow: 'hidden' },
+  bigAvatar: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  handoffName: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 24, marginTop: 16, textAlign: 'center' },
+  handoffSub: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 14, marginTop: 4, textAlign: 'center' },
+  flagCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 12, marginTop: 16 },
+  flagFrame: { width: '100%', aspectRatio: 4 / 3, borderRadius: 10, overflow: 'hidden' },
   flag: { width: '100%', height: '100%' },
-  prompt: { ...type.label, color: colors.textMuted, fontSize: 12, letterSpacing: 2, textAlign: 'center', marginVertical: 14 },
+  prompt: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 14, textAlign: 'center', marginVertical: 14 },
   timerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 12 },
-  timerTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.surfaceHighest, overflow: 'hidden' },
-  timerFill: { height: '100%', borderRadius: 5 },
-  timerText: { fontFamily: fonts.display, fontSize: 20, width: 40, textAlign: 'right' },
-  verdict: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: radius.md, paddingLeft: 14, paddingRight: 6, paddingVertical: 6, marginVertical: 8 },
-  verdictText: { flex: 1, fontFamily: fonts.bold, fontSize: 15 },
+  timerTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.surfaceHighest, overflow: 'hidden' },
+  timerFill: { height: '100%', borderRadius: 3 },
+  timerText: { fontFamily: fonts.bold, fontSize: 16, width: 40, textAlign: 'right' },
+  verdict: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, marginVertical: 8 },
+  verdictText: { flex: 1, fontFamily: fonts.semibold, fontSize: 15 },
   nextBtn: { paddingHorizontal: 18 },
   options: { gap: 8 },
   option: {
@@ -367,28 +307,20 @@ const styles = StyleSheet.create({
     minHeight: 52,
     backgroundColor: colors.surfaceHigh,
     borderRadius: radius.md,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 12,
   },
   optionRight: { backgroundColor: colors.success },
   optionWrong: { backgroundColor: colors.danger },
   optionDim: { opacity: 0.45 },
-  optionText: { flex: 1, fontFamily: fonts.bold, color: colors.text, fontSize: 18 },
+  optionText: { flex: 1, fontFamily: fonts.semibold, color: colors.text, fontSize: 16 },
   summaryHead: { alignItems: 'center', paddingVertical: 16 },
-  summaryScore: { fontFamily: fonts.display, color: colors.primary, fontSize: 64, letterSpacing: -2, marginTop: 10 },
-  summarySub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 15, textAlign: 'center' },
-  resultsCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 18, marginTop: 8 },
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.surfaceLow,
-    borderRadius: 16,
-    padding: 10,
-    marginBottom: 8,
-  },
-  resultFlag: { width: 44, height: 33, borderRadius: 5 },
-  resultName: { fontFamily: fonts.bold, color: colors.text, fontSize: 15 },
+  summaryScore: { fontFamily: fonts.display, color: colors.text, fontSize: 48 },
+  summarySub: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 15, textAlign: 'center', marginTop: 2 },
+  resultsCard: { backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: 14, marginTop: 8 },
+  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  resultDivider: { borderTopWidth: 1, borderTopColor: colors.surfaceHighest },
+  resultFlag: { width: 40, height: 30, borderRadius: 4 },
+  resultName: { fontFamily: fonts.semibold, color: colors.text, fontSize: 15 },
   resultMiss: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 12, marginTop: 1 },
-  resultMark: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

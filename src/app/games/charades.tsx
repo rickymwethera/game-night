@@ -49,7 +49,7 @@ export default function CharadesScreen() {
   if (mode.kind === 'setup') {
     return (
       <Screen>
-        <AppHeader variant="session" title="LIVE GAME SESSION" onBack={exit} />
+        <AppHeader variant="session" title="Charades" onBack={exit} />
         <SetupView
           initial={mode.settings}
           initialDecks={initialDecks?.length ? initialDecks : undefined}
@@ -68,7 +68,7 @@ export default function CharadesScreen() {
     <Screen>
       <AppHeader
         variant="session"
-        title="LIVE GAME SESSION"
+        title="Charades"
         backIcon={state.phase === 'gameOver' ? 'arrow-left' : 'x'}
         onBack={() => (state.phase === 'gameOver' ? exit() : dispatch({ type: 'SETUP' }))}
       />

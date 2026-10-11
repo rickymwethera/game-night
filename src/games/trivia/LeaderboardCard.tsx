@@ -4,8 +4,6 @@ import { Icon } from '../../components/ui';
 import { colors, fonts, radius } from '../../theme';
 import type { LeaderboardEntry } from './engine';
 
-const MEDALS = ['🥇', '🥈', '🥉'];
-
 function formatDate(ms: number) {
   return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
@@ -29,9 +27,7 @@ export function LeaderboardCard({
   if (entries.length === 0) {
     return (
       <View style={[styles.card, styles.empty]}>
-        <Text style={{ fontSize: 32 }}>🏆</Text>
-        <Text style={styles.emptyTitle}>No scores yet</Text>
-        <Text style={styles.emptyBody}>Finish a game and the top scores on this phone land here.</Text>
+        <Text style={styles.emptyBody}>No scores yet</Text>
       </View>
     );
   }
@@ -43,17 +39,16 @@ export function LeaderboardCard({
         const fresh = highlight?.has(e.id);
         return (
           <View key={e.id} style={[styles.row, fresh && styles.rowFresh]}>
-            <Text style={styles.rank}>{MEDALS[i] ?? `${i + 1}`}</Text>
+            <Text style={styles.rank}>{i + 1}</Text>
             <View style={[styles.avatar, { backgroundColor: e.color }]}>
               <Text style={{ fontSize: 16 }}>{e.emoji}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.name} numberOfLines={1}>
                 {e.name}
-                {fresh ? <Text style={{ color: colors.coral }}>  NEW</Text> : null}
               </Text>
               <Text style={styles.meta}>
-                {e.correct}/{e.total} right • {formatDate(e.playedAt)}
+                {e.correct}/{e.total} right · {formatDate(e.playedAt)}
               </Text>
             </View>
             <Text style={styles.score}>{e.score}</Text>
@@ -92,17 +87,16 @@ export function LeaderboardCard({
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 12 },
-  empty: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 },
-  emptyTitle: { fontFamily: fonts.display, color: colors.text, fontSize: 19, marginTop: 8 },
-  emptyBody: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 4 },
+  empty: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20 },
+  emptyBody: { fontFamily: fonts.body, color: colors.textDim, fontSize: 14, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 8, borderRadius: 16 },
-  rowFresh: { backgroundColor: '#2A2236' },
-  rank: { width: 26, textAlign: 'center', fontFamily: fonts.extrabold, color: colors.textMuted, fontSize: 15 },
+  rowFresh: { backgroundColor: colors.surfaceHigh },
+  rank: { width: 20, textAlign: 'center', fontFamily: fonts.semibold, color: colors.textDim, fontSize: 14 },
   avatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: fonts.bold, color: colors.text, fontSize: 15 },
+  name: { fontFamily: fonts.semibold, color: colors.text, fontSize: 15 },
   meta: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 12, marginTop: 1 },
-  score: { fontFamily: fonts.display, color: colors.primary, fontSize: 20 },
+  score: { fontFamily: fonts.display, color: colors.text, fontSize: 18 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 8, paddingTop: 6 },
   footerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
-  footerText: { fontFamily: fonts.bold, color: colors.primary, fontSize: 12 },
+  footerText: { fontFamily: fonts.semibold, color: colors.primary, fontSize: 12 },
 });

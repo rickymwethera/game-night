@@ -1,12 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { Button, Icon, Pill, type } from '../../components/ui';
+import { Button, Icon, type } from '../../components/ui';
 import { shortTeamName } from '../../core/types';
-import { colors, fonts, gradients, radius } from '../../theme';
+import { colors, fonts, radius } from '../../theme';
 import {
   currentActor,
   currentTeam,
@@ -33,11 +32,11 @@ function buzz(enabled: boolean, kind: 'success' | 'warning' | 'light') {
 function ScorePod({ state }: { state: CharadesState }) {
   return (
     <View style={styles.scorePod}>
-      {state.settings.teams.map((t, i) => (
+      {state.settings.teams.map((t) => (
         <View key={t.id} style={styles.podItem}>
-          {i > 0 && <View style={styles.podDot} />}
-          <Text style={[styles.podName, { color: t.color }]} numberOfLines={1}>
-            {shortTeamName(t.name).toUpperCase()}
+          <View style={[styles.podDot, { backgroundColor: t.color }]} />
+          <Text style={styles.podName} numberOfLines={1}>
+            {shortTeamName(t.name)}
           </Text>
           <Text style={styles.podScore}>{state.scores[t.id]}</Text>
         </View>
@@ -52,34 +51,21 @@ function Hud({ state, extra }: { state: CharadesState; extra?: string }) {
     <View style={styles.hud}>
       <View style={styles.hudRow}>
         <View style={[styles.avatar, { backgroundColor: team.color }]}>
-          <Text style={{ fontSize: 26 }}>{team.emoji}</Text>
+          <Text style={{ fontSize: 20 }}>{team.emoji}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.hudTeam, { color: team.color }]} numberOfLines={1}>
-            {team.name.toUpperCase()} ●
+          <Text style={styles.hudTeam} numberOfLines={1}>
+            {team.name}
           </Text>
           <Text style={styles.hudActor} numberOfLines={1}>
-            Actor: <Text style={{ color: colors.primary }}>{currentActor(state)}</Text>
+            {currentActor(state)} is acting
           </Text>
         </View>
+        {extra && <Text style={styles.hudMetaText}>{extra}</Text>}
       </View>
       <ScorePod state={state} />
-      <View style={styles.hudMeta}>
-        <Pill label={`ROUND ${state.round}`} bg={colors.surfaceHigh} fg={colors.text} />
-        <Text style={styles.hudMetaText}>First to {state.settings.targetPoints} pts</Text>
-        {extra && <Text style={[styles.hudMetaText, { marginLeft: 'auto' }]}>{extra}</Text>}
-      </View>
-    </View>
-  );
-}
-
-function PartyRule({ actor }: { actor: string }) {
-  return (
-    <View style={styles.partyRule}>
-      <Icon name="volume-x" size={18} color={colors.coral} />
-      <Text style={[type.body, { flex: 1, color: colors.text }]}>
-        <Text style={{ fontFamily: fonts.bold }}>Party Rule: </Text>
-        {actor} cannot speak, mouth words, or write in the air! Only teammate shouts count.
+      <Text style={[styles.hudMetaText, { marginTop: 10, textAlign: 'center' }]}>
+        Round {state.round} · first to {state.settings.targetPoints}
       </Text>
     </View>
   );
@@ -92,41 +78,33 @@ export function HandoffView({ state, dispatch }: { state: CharadesState; dispatc
     <ScrollView contentContainerStyle={styles.page}>
       <Hud state={state} />
       <View style={styles.handoff}>
-        <Pill label="PASS THE PHONE" icon="smartphone" bg="#3A2F55" fg={colors.primary} style={{ alignSelf: 'center' }} />
-        <View style={[styles.bigAvatar, { backgroundColor: team.color, shadowColor: team.color }]}>
-          <Text style={{ fontSize: 56 }}>{team.emoji}</Text>
+        <Text style={type.label}>Pass the phone to</Text>
+        <View style={[styles.bigAvatar, { backgroundColor: team.color }]}>
+          <Text style={{ fontSize: 44 }}>{team.emoji}</Text>
         </View>
         <Text style={styles.handoffName}>{actor}</Text>
-        <Text style={styles.handoffSub}>
-          you're acting for <Text style={{ color: team.color }}>{team.name}</Text>
-        </Text>
-        <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
-          Guessers, look away until the timer starts. No peeking at the screen!
+        <Text style={styles.handoffSub}>acting for {team.name}</Text>
+        <Text style={[type.body, { textAlign: 'center', marginTop: 16 }]}>
+          Guessers look away until the timer starts. No talking or mouthing words.
         </Text>
       </View>
-      <Button
-        label={`I'M READY • START ${state.settings.roundSeconds}s`}
-        size="lg"
-        onPress={() => dispatch({ type: 'START_TURN', now: Date.now() })}
-      />
-      <PartyRule actor={actor} />
+      <Button label="I'm ready" size="lg" onPress={() => dispatch({ type: 'START_TURN', now: Date.now() })} />
     </ScrollView>
   );
 }
 
 function TimerRing({ secondsLeft, total, paused }: { secondsLeft: number; total: number; paused: boolean }) {
   const size = 112;
-  const stroke = 8;
+  const stroke = 6;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const progress = total > 0 ? secondsLeft / total : 0;
   const urgent = secondsLeft <= 10;
-  const ringColor = urgent ? colors.pinkStrong : colors.coral;
+  const ringColor = paused ? colors.textDim : urgent ? colors.danger : colors.primary;
   const mm = Math.floor(secondsLeft / 60);
   const ss = String(secondsLeft % 60).padStart(2, '0');
   return (
     <View style={styles.timerWrap}>
-      <View style={[styles.timerGlow, { shadowColor: ringColor, backgroundColor: ringColor + '22' }]} />
       <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
         <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.surfaceHighest} strokeWidth={stroke} fill="none" />
         <Circle
@@ -142,13 +120,10 @@ function TimerRing({ secondsLeft, total, paused }: { secondsLeft: number; total:
         />
       </Svg>
       <View style={styles.timerCenter}>
-        <Text style={styles.timerValue}>
+        <Text style={[styles.timerValue, urgent && !paused && { color: colors.danger }]}>
           {mm}:{ss}
         </Text>
-        <View style={styles.ticking}>
-          <View style={[styles.tickDot, { backgroundColor: paused ? colors.textDim : ringColor }]} />
-          <Text style={[styles.tickText, { color: paused ? colors.textDim : ringColor }]}>{paused ? 'PAUSED' : 'TICKING'}</Text>
-        </View>
+        {paused && <Text style={styles.tickText}>Paused</Text>}
       </View>
     </View>
   );
@@ -163,8 +138,6 @@ export function PlayingView({
   dispatch: Dispatch;
   soundOn: boolean;
 }) {
-  const team = currentTeam(state);
-  const actor = currentActor(state);
   const total = state.settings.roundSeconds;
   const [secondsLeft, setSecondsLeft] = useState(total);
   const lastWarned = useRef<number | null>(null);
@@ -210,39 +183,27 @@ export function PlayingView({
   const category = card ? getCategory(card.categoryId) : undefined;
   const paused = state.paused != null;
   const { skipPenalty } = state.settings;
-  const cardNumber = state.turnResults.length + 1;
+  const score = turnScore(state.turnResults, skipPenalty);
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Hud state={state} extra={`Card ${cardNumber} • ${turnScore(state.turnResults, skipPenalty)} pts`} />
+      <Hud state={state} extra={`${score} ${Math.abs(score) === 1 ? 'point' : 'points'}`} />
       <TimerRing secondsLeft={secondsLeft} total={total} paused={paused} />
 
       <View style={styles.wordCard}>
-        <LinearGradient colors={['rgba(255,255,255,0.05)', 'transparent']} style={styles.sheen} />
-        <View style={styles.wordBadges}>
-          {category && <Pill label={`${category.emoji}  ${category.title.toUpperCase()}`} bg={colors.surfaceHigh} fg={colors.coral} />}
-          <Pill label="+1 PT" icon="star" bg={colors.primaryStrong} fg="#1A0050" />
-        </View>
+        {category && <Text style={[type.label, { textAlign: 'center' }]}>{category.title}</Text>}
         {paused ? (
           <View style={styles.wordCenter}>
-            <Icon name="pause-circle" size={44} color={colors.textDim} />
+            <Icon name="pause" size={36} color={colors.textDim} />
             <Text style={styles.pausedText}>Paused. The word is hidden until you resume.</Text>
           </View>
         ) : (
           <View style={styles.wordCenter}>
-            <Text style={styles.actLabel}>ACT IT OUT</Text>
             <Text style={styles.word} adjustsFontSizeToFit numberOfLines={3}>
-              {card?.word.toUpperCase()}
+              {card?.word}
             </Text>
           </View>
         )}
-        <View style={styles.wordFooter}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Icon name="tag" size={13} color={colors.textDim} />
-            <Text style={styles.footerText}>{category?.tag}</Text>
-          </View>
-          {category && <Pill label={`Level: ${category.difficulty.toLowerCase()}`} bg={colors.surfaceHigh} fg={colors.text} />}
-        </View>
       </View>
 
       <View style={styles.controls}>
@@ -252,11 +213,8 @@ export function PlayingView({
           onPress={() => dispatch({ type: 'SKIP', now: Date.now() })}
           style={({ pressed }) => [styles.passBtn, { opacity: paused ? 0.4 : pressed ? 0.8 : 1 }]}
         >
-          <View style={styles.ctaRow}>
-            <Icon name="x" size={22} color={colors.coral} />
-            <Text style={[styles.ctaTitle, { color: colors.coral }]}>PASS</Text>
-          </View>
-          <Text style={styles.ctaSub}>{skipPenalty ? '-1 Point Penalty' : 'No penalty'}</Text>
+          <Text style={styles.ctaTitle}>Pass</Text>
+          {skipPenalty && <Text style={styles.ctaSub}>−1 point</Text>}
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -265,7 +223,6 @@ export function PlayingView({
           style={({ pressed }) => [styles.pauseBtn, { opacity: pressed ? 0.8 : 1 }]}
         >
           <Icon name={paused ? 'play' : 'pause'} size={22} color={colors.text} />
-          <Text style={styles.pauseText}>{paused ? 'GO' : 'PAUSE'}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -274,22 +231,11 @@ export function PlayingView({
             buzz(soundOn, 'success');
             dispatch({ type: 'GOT_IT', now: Date.now() });
           }}
-          style={({ pressed }) => [{ flex: 1.1, opacity: paused ? 0.4 : pressed ? 0.85 : 1 }]}
+          style={({ pressed }) => [styles.gotBtn, { opacity: paused ? 0.4 : pressed ? 0.85 : 1 }]}
         >
-          <LinearGradient colors={gradients.gotIt} style={styles.gotBtn}>
-            <View style={styles.ctaRow}>
-              <View style={styles.checkCircle}>
-                <Icon name="check" size={16} color={colors.primary} />
-              </View>
-              <Text style={[styles.ctaTitle, { color: '#1A0050' }]}>GOT IT!</Text>
-            </View>
-            <Text style={[styles.ctaSub, { color: '#2A0066' }]}>+1 Point</Text>
-          </LinearGradient>
+          <Text style={[styles.ctaTitle, { color: colors.onPrimary }]}>Got it</Text>
         </Pressable>
       </View>
-
-      <PartyRule actor={actor} />
-      <Text style={[type.label, { textAlign: 'center', marginTop: 4, color: team.color }]}>{team.name} is guessing</Text>
     </ScrollView>
   );
 }
@@ -304,41 +250,40 @@ export function TurnSummaryView({ state, dispatch }: { state: CharadesState; dis
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.summaryHead}>
-        <Pill label="TIME'S UP" icon="clock" bg={colors.orange} fg="#FFE4D8" style={{ alignSelf: 'center' }} />
+        <Text style={type.label}>Time&apos;s up</Text>
         <Text style={styles.summaryScore}>
           {score > 0 ? '+' : ''}
-          {score} {Math.abs(score) === 1 ? 'PT' : 'PTS'}
+          {score} {Math.abs(score) === 1 ? 'point' : 'points'}
         </Text>
         <Text style={styles.summarySub}>
-          for <Text style={{ color: team.color }}>{team.name}</Text>, acted by {currentActor(state)}
+          for {team.name}, acted by {currentActor(state)}
         </Text>
       </View>
       <View style={styles.resultsCard}>
-        <Text style={[type.label, { marginBottom: 10 }]}>
-          {state.turnResults.length > 0 ? 'Tap a word to fix a mistake' : 'No words this turn'}
-        </Text>
+        {state.turnResults.length > 0 ? (
+          <Text style={[type.label, { marginBottom: 10 }]}>Tap a word to fix a mistake</Text>
+        ) : (
+          <Text style={type.body}>No words this turn.</Text>
+        )}
         {state.turnResults.map((r, i) => (
           <Pressable
             key={`${r.card.word}-${i}`}
             onPress={() => dispatch({ type: 'TOGGLE_RESULT', index: i })}
             style={styles.resultRow}
             accessibilityRole="button"
+            accessibilityLabel={`${r.card.word}, ${r.correct ? 'guessed' : 'passed'}`}
           >
-            <View style={[styles.resultMark, { backgroundColor: r.correct ? colors.primary : colors.surfaceHighest }]}>
-              <Icon name={r.correct ? 'check' : 'x'} size={14} color={r.correct ? colors.onPrimary : colors.coral} />
-            </View>
+            <Icon name={r.correct ? 'check' : 'x'} size={16} color={r.correct ? colors.success : colors.textDim} />
             <Text style={[styles.resultWord, !r.correct && styles.resultSkipped]}>{r.card.word}</Text>
             <Text style={styles.resultTime}>{(r.ms / 1000).toFixed(1)}s</Text>
           </Pressable>
         ))}
-        {state.turnResults.length === 0 && <Text style={type.body}>Better luck next time!</Text>}
       </View>
-      <View style={[styles.hud, { marginTop: 16 }]}>
-        <Text style={[type.label, { marginBottom: 10 }]}>Scoreboard</Text>
+      <View style={{ marginTop: 16 }}>
         <ScorePod state={state} />
       </View>
       <Button
-        label={lastInRound ? `SEE WHO WON ROUND ${state.round}` : `NEXT: ${nextTeam.name.toUpperCase()}`}
+        label={lastInRound ? `See round ${state.round} results` : `Next: ${nextTeam.name}`}
         size="lg"
         onPress={() => dispatch({ type: 'NEXT_TURN' })}
         style={{ marginTop: 24 }}
@@ -357,26 +302,22 @@ export function RoundOverView({ state, dispatch }: { state: CharadesState; dispa
   const decided = matchDecided(state);
   const leader = [...state.settings.teams].sort((a, b) => state.scores[b.id] - state.scores[a.id])[0];
   const reachedTarget = state.scores[leader.id] >= state.settings.targetPoints;
+  const pts = (n: number) => `${n} ${Math.abs(n) === 1 ? 'point' : 'points'}`;
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.handoff}>
-        <Pill label={`ROUND ${round} COMPLETE`} icon="flag" bg={colors.orange} fg="#FFE4D8" style={{ alignSelf: 'center' }} />
-        <View
-          style={[
-            styles.bigAvatar,
-            tie ? { backgroundColor: colors.surfaceHigh, shadowColor: colors.primaryStrong } : { backgroundColor: winner.color, shadowColor: winner.color },
-          ]}
-        >
-          <Text style={{ fontSize: 56 }}>{tie ? '🤝' : winner.emoji}</Text>
-        </View>
-        <Text style={styles.roundHeadline}>
-          {tie ? `ROUND ${round} IS A TIE!` : `${winner.name.toUpperCase()} WINS ROUND ${round}!`}
-        </Text>
+        <Text style={type.label}>Round {round} complete</Text>
+        {!tie && (
+          <View style={[styles.bigAvatar, { backgroundColor: winner.color }]}>
+            <Text style={{ fontSize: 44 }}>{winner.emoji}</Text>
+          </View>
+        )}
+        <Text style={styles.roundHeadline}>{tie ? `Round ${round} is a tie` : `${winner.name} wins round ${round}`}</Text>
         <Text style={styles.handoffSub}>
           {tie
-            ? `${winners.map((t) => shortTeamName(t.name)).join(' & ')} both scored ${best} ${Math.abs(best) === 1 ? 'point' : 'points'}`
-            : `with ${best} ${Math.abs(best) === 1 ? 'point' : 'points'} this round`}
+            ? `${winners.map((t) => shortTeamName(t.name)).join(' & ')} both scored ${pts(best)}`
+            : `with ${pts(best)} this round`}
         </Text>
       </View>
 
@@ -393,7 +334,7 @@ export function RoundOverView({ state, dispatch }: { state: CharadesState; dispa
               <View style={[styles.resultMark, { backgroundColor: team.color }]}>
                 <Text style={{ fontSize: 15 }}>{team.emoji}</Text>
               </View>
-              <Text style={[styles.resultWord, { color: won ? team.color : colors.text }]} numberOfLines={1}>
+              <Text style={styles.resultWord} numberOfLines={1}>
                 {team.name}
               </Text>
               <Text style={[styles.roundPoints, styles.roundCol]}>
@@ -408,32 +349,23 @@ export function RoundOverView({ state, dispatch }: { state: CharadesState; dispa
 
       {decided ? (
         <>
-          <View style={styles.partyRule}>
-            <Icon name="award" size={18} color={colors.coral} />
-            <Text style={[type.body, { flex: 1, color: colors.text }]}>
-              {reachedTarget
-                ? `${leader.name} reached ${state.settings.targetPoints} points. That's game!`
-                : `That was the last of ${state.settings.maxRounds} rounds. Time to crown a champion.`}
-            </Text>
-          </View>
-          <Button label="SEE WHO WON 🏆" size="lg" onPress={() => dispatch({ type: 'END_GAME' })} style={{ marginTop: 24 }} />
+          <Text style={[type.body, { textAlign: 'center', marginTop: 20 }]}>
+            {reachedTarget
+              ? `${leader.name} reached ${state.settings.targetPoints} points.`
+              : `That was the last of ${state.settings.maxRounds} rounds.`}
+          </Text>
+          <Button label="See final results" size="lg" onPress={() => dispatch({ type: 'END_GAME' })} style={{ marginTop: 20 }} />
         </>
       ) : (
         <>
-          <Text style={styles.askAgain}>Play another round?</Text>
-          <Text style={[type.body, { textAlign: 'center' }]}>
-            First to {state.settings.targetPoints} pts wins the match.
-          </Text>
           <Button
-            label={`YES, PLAY ROUND ${round + 1}`}
-            icon="rotate-cw"
+            label={`Play round ${round + 1}`}
             size="lg"
             onPress={() => dispatch({ type: 'NEXT_ROUND' })}
-            style={{ marginTop: 18 }}
+            style={{ marginTop: 28 }}
           />
           <Button
-            label="No, end the game"
-            icon="flag"
+            label="End game"
             variant="secondary"
             onPress={() => dispatch({ type: 'END_GAME' })}
             style={{ marginTop: 12 }}
@@ -446,86 +378,61 @@ export function RoundOverView({ state, dispatch }: { state: CharadesState; dispa
 
 const styles = StyleSheet.create({
   page: { padding: 20, paddingBottom: 40 },
-  hud: { backgroundColor: colors.surfaceLow, borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: colors.surfaceHigh },
-  hudRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
-  avatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  hudTeam: { fontFamily: fonts.extrabold, fontSize: 14, letterSpacing: 0.8 },
-  hudActor: { fontFamily: fonts.medium, color: colors.text, fontSize: 16 },
+  hud: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 14 },
+  hudRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  hudTeam: { fontFamily: fonts.bold, color: colors.text, fontSize: 15 },
+  hudActor: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 13 },
   scorePod: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.surfaceHigh,
+    columnGap: 18,
+    rowGap: 6,
+    backgroundColor: colors.surfaceLow,
     borderRadius: radius.pill,
     paddingVertical: 8,
     paddingHorizontal: 16,
   },
   podItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  podDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.textDim, marginHorizontal: 4 },
-  podName: { fontFamily: fonts.extrabold, fontSize: 12, letterSpacing: 0.8 },
-  podScore: { fontFamily: fonts.display, color: colors.text, fontSize: 22 },
-  hudMeta: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
-  hudMetaText: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 13 },
-  partyRule: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-    backgroundColor: colors.surfaceLowest,
-    borderRadius: radius.md,
-    padding: 16,
-    marginTop: 16,
-  },
-  handoff: { alignItems: 'center', paddingVertical: 32 },
+  podDot: { width: 8, height: 8, borderRadius: 4 },
+  podName: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 13 },
+  podScore: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 18 },
+  hudMetaText: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 13 },
+  handoff: { alignItems: 'center', paddingVertical: 28 },
   bigAvatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
-    shadowOpacity: 0.55,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
+    marginTop: 16,
   },
-  handoffName: { fontFamily: fonts.display, color: colors.text, fontSize: 40, marginTop: 20, textAlign: 'center', letterSpacing: -0.8 },
-  handoffSub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 16, marginTop: 2 },
-  timerWrap: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginVertical: 14 },
-  timerGlow: {
-    position: 'absolute',
-    width: 124,
-    height: 124,
-    borderRadius: 62,
-    shadowOpacity: 0.7,
-    shadowRadius: 40,
-    shadowOffset: { width: 0, height: 0 },
-  },
+  handoffName: { fontFamily: fonts.display, color: colors.text, fontSize: 32, marginTop: 16, textAlign: 'center' },
+  handoffSub: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 15, marginTop: 4, textAlign: 'center' },
+  timerWrap: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginVertical: 16 },
   timerCenter: { position: 'absolute', alignItems: 'center' },
-  timerValue: { fontFamily: fonts.display, color: colors.text, fontSize: 32, letterSpacing: -1 },
-  ticking: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -2 },
-  tickDot: { width: 7, height: 7, borderRadius: 4 },
-  tickText: { fontFamily: fonts.bold, fontSize: 11, letterSpacing: 1.2 },
+  timerValue: { fontFamily: fonts.display, color: colors.text, fontSize: 32 },
+  tickText: { fontFamily: fonts.medium, fontSize: 12, color: colors.textDim },
   wordCard: {
     backgroundColor: colors.surface,
-    borderRadius: 36,
+    borderRadius: radius.lg,
     padding: 22,
-    overflow: 'hidden',
-    minHeight: 250,
-    borderWidth: 1,
-    borderColor: colors.surfaceHigh,
+    minHeight: 220,
   },
-  sheen: { position: 'absolute', top: 0, left: 0, right: 0, height: 110 },
-  wordBadges: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   wordCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
-  actLabel: { ...type.label, color: colors.textMuted, fontSize: 12, letterSpacing: 2 },
-  word: { fontFamily: fonts.display, color: colors.text, fontSize: 46, lineHeight: 50, textAlign: 'center', marginTop: 10, letterSpacing: -1 },
-  pausedText: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 15, marginTop: 12, textAlign: 'center' },
-  wordFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  footerText: { fontFamily: fonts.semibold, color: colors.textDim, fontSize: 12 },
-  controls: { flexDirection: 'row', gap: 10, marginTop: 14, alignItems: 'center' },
-  passBtn: { flex: 1, backgroundColor: colors.surfaceHigh, borderRadius: 32, paddingVertical: 18, alignItems: 'center' },
+  word: { fontFamily: fonts.display, color: colors.text, fontSize: 44, lineHeight: 50, textAlign: 'center' },
+  pausedText: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 15, marginTop: 12, textAlign: 'center' },
+  controls: { flexDirection: 'row', gap: 10, marginTop: 16, alignItems: 'center' },
+  passBtn: {
+    flex: 1,
+    height: 64,
+    backgroundColor: colors.surfaceHigh,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pauseBtn: {
     width: 64,
     height: 64,
@@ -534,50 +441,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pauseText: { fontFamily: fonts.bold, color: colors.text, fontSize: 10, letterSpacing: 0.8, marginTop: 2 },
   gotBtn: {
+    flex: 1.1,
+    height: 64,
+    backgroundColor: colors.primary,
     borderRadius: 32,
-    paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: colors.primaryStrong,
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
+    justifyContent: 'center',
   },
-  ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ctaTitle: { fontFamily: fonts.display, fontSize: 20, letterSpacing: 0.5 },
-  ctaSub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 12, marginTop: 2 },
-  checkCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#1A0050', alignItems: 'center', justifyContent: 'center' },
+  ctaTitle: { fontFamily: fonts.bold, color: colors.text, fontSize: 18 },
+  ctaSub: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 12 },
   summaryHead: { alignItems: 'center', paddingVertical: 16 },
-  summaryScore: { fontFamily: fonts.display, color: colors.primary, fontSize: 64, letterSpacing: -2, marginTop: 10 },
-  summarySub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 15, textAlign: 'center' },
-  resultsCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 18, marginTop: 8 },
+  summaryScore: { fontFamily: fonts.display, color: colors.text, fontSize: 48, marginTop: 8 },
+  summarySub: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 15, textAlign: 'center' },
+  resultsCard: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 16, marginTop: 8 },
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     backgroundColor: colors.surfaceLow,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.surfaceLow,
   },
   resultMark: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  resultWord: { flex: 1, fontFamily: fonts.bold, color: colors.text, fontSize: 16 },
+  resultWord: { flex: 1, fontFamily: fonts.semibold, color: colors.text, fontSize: 16 },
   resultSkipped: { color: colors.textDim, textDecorationLine: 'line-through' },
-  resultTime: { fontFamily: fonts.semibold, color: colors.textDim, fontSize: 12 },
+  resultTime: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 12 },
   roundHeadline: {
     fontFamily: fonts.display,
     color: colors.text,
-    fontSize: 32,
-    lineHeight: 36,
-    marginTop: 20,
+    fontSize: 24,
+    lineHeight: 30,
+    marginTop: 16,
     textAlign: 'center',
-    letterSpacing: -0.6,
   },
   roundTableHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, marginBottom: 10 },
   roundCol: { width: 52, textAlign: 'right' },
-  roundRowWon: { borderWidth: 1, borderColor: '#4A3B7A' },
-  roundPoints: { fontFamily: fonts.bold, color: colors.primary, fontSize: 16 },
-  roundTotal: { fontFamily: fonts.display, color: colors.text, fontSize: 20 },
-  askAgain: { fontFamily: fonts.display, color: colors.text, fontSize: 26, textAlign: 'center', marginTop: 28, marginBottom: 4 },
+  roundRowWon: { borderColor: colors.primary },
+  roundPoints: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 16 },
+  roundTotal: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 18 },
 });

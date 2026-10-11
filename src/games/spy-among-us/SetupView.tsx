@@ -1,7 +1,6 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Button, Icon, Pill, SectionHeader, Segmented, Stepper, Toggle } from '../../components/ui';
+import { Button, Disclosure, Icon, SectionHeader, Segmented, Stepper, Toggle } from '../../components/ui';
 import { getProfile } from '../../core/store';
 import { colors, fonts, radius } from '../../theme';
 import { DEFAULT_SETTINGS, MAX_PLAYERS, MIN_PLAYERS, type SpyPlayer, type SpySettings, type VotingMode } from './engine';
@@ -51,9 +50,13 @@ export function SetupView({ initial, onStart }: { initial?: SpySettings; onStart
   const rename = (id: string, name: string) => setPlayers((ps) => ps.map((p) => (p.id === id ? { ...p, name } : p)));
   const togglePack = (id: string) => setPackIds((ids) => (ids.includes(id) ? ids.filter((p) => p !== id) : [...ids, id]));
 
-  const words = SPY_PACKS.filter((p) => packIds.includes(p.id)).reduce((n, p) => n + p.words.length, 0);
   const canStart = packIds.length > 0 && players.length >= MIN_PLAYERS;
   const allPacks = packIds.length === SPY_PACKS.length;
+  const summary = [
+    `${discussSeconds / 60} min`,
+    `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`,
+    voting === 'secret' ? 'Secret vote' : 'Point vote',
+  ].join(' · ');
 
   const start = () =>
     onStart({
@@ -68,37 +71,12 @@ export function SetupView({ initial, onStart }: { initial?: SpySettings; onStart
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <LinearGradient
-        colors={['#1C1F29', '#22253A', '#3A2440']}
-        start={{ x: 0.3, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.gameCard}
-      >
-        <View style={styles.gameTop}>
-          <Text style={{ fontSize: 30 }}>🕵🏾</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.gameTitle}>Spy Among Us</Text>
-            <Text style={styles.edition}>KENYAN & GLOBAL EDITION</Text>
-          </View>
-          <Pill label="1 Spy" icon="eye" bg={colors.surfaceHigh} fg={colors.textMuted} />
-        </View>
-        <Text style={styles.howTo}>
-          Everyone gets the secret word except the spy. Ask each other questions, bluff, then vote out who you think is
-          faking it.
-        </Text>
-      </LinearGradient>
-
-      <SectionHeader
-        title="Players"
-        icon="users"
-        subtitle={`${MIN_PLAYERS} to ${MAX_PLAYERS} players, one phone`}
-        right={<Pill label={`${players.length} / ${MAX_PLAYERS}`} bg={colors.surfaceHigh} fg={colors.text} />}
-      />
+      <SectionHeader title="Players" />
       <View style={styles.playerList}>
         {players.map((p, i) => (
           <View key={p.id} style={styles.playerRow}>
             <View style={[styles.avatar, { backgroundColor: p.color }]}>
-              <Text style={{ fontSize: 18 }}>{p.emoji}</Text>
+              <Text style={{ fontSize: 16 }}>{p.emoji}</Text>
             </View>
             <TextInput
               value={p.name}
@@ -116,7 +94,7 @@ export function SetupView({ initial, onStart }: { initial?: SpySettings; onStart
                 accessibilityRole="button"
                 accessibilityLabel={`Remove ${p.name || fallbackName(i)}`}
               >
-                <Icon name="x" size={16} color={colors.textMuted} />
+                <Icon name="x" size={16} color={colors.textDim} />
               </Pressable>
             )}
           </View>
@@ -124,27 +102,22 @@ export function SetupView({ initial, onStart }: { initial?: SpySettings; onStart
       </View>
       {players.length < MAX_PLAYERS && (
         <Pressable onPress={addPlayer} style={styles.addPlayer} accessibilityRole="button">
-          <Icon name="user-plus" size={16} color={colors.primary} />
+          <Icon name="plus" size={16} color={colors.textMuted} />
           <Text style={styles.addPlayerText}>Add player</Text>
         </Pressable>
       )}
 
       <SectionHeader
-        title="Word Packs"
-        icon="layers"
+        title="Packs"
         right={
           <Pressable onPress={() => setPackIds(allPacks ? [] : SPY_PACKS.map((p) => p.id))} hitSlop={8}>
-            <Text style={styles.link}>{allPacks ? 'Clear all' : `Select all ${SPY_PACKS.length}`}</Text>
+            <Text style={styles.link}>{allPacks ? 'Clear all' : 'Select all'}</Text>
           </Pressable>
         }
       />
-      <View style={styles.packSummary}>
-        <Pill label="SECRET WORDS IN PLAY" bg={colors.pinkStrong} fg="#3D0020" />
-        <Pill label={`${words} Words`} bg={colors.surfaceLowest} fg={colors.text} />
-      </View>
       {(['kenyan', 'global'] as const).map((collection) => (
         <View key={collection}>
-          <Text style={styles.collection}>{collection === 'kenyan' ? '🇰🇪 Kenyan Vault' : '🌍 Global Hits'}</Text>
+          <Text style={styles.collection}>{collection === 'kenyan' ? 'Kenyan' : 'Global'}</Text>
           <View style={styles.packGrid}>
             {SPY_PACKS.filter((p) => p.collection === collection).map((p) => {
               const on = packIds.includes(p.id);
@@ -156,21 +129,9 @@ export function SetupView({ initial, onStart }: { initial?: SpySettings; onStart
                   onPress={() => togglePack(p.id)}
                   style={[styles.packTile, on && styles.packTileOn]}
                 >
-                  <View style={styles.packTileTop}>
-                    <Text style={{ fontSize: 22 }}>{p.emoji}</Text>
-                    {on ? (
-                      <View style={styles.check}>
-                        <Icon name="check" size={12} color={colors.onPrimary} />
-                      </View>
-                    ) : (
-                      <Text style={styles.packCount}>{p.words.length} words</Text>
-                    )}
-                  </View>
-                  <Text style={styles.packTitle} numberOfLines={1}>
+                  <Text style={{ fontSize: 18 }}>{p.emoji}</Text>
+                  <Text style={styles.packTitle} numberOfLines={2}>
                     {p.title}
-                  </Text>
-                  <Text style={styles.packSub} numberOfLines={2}>
-                    {p.description}
                   </Text>
                 </Pressable>
               );
@@ -179,51 +140,43 @@ export function SetupView({ initial, onStart }: { initial?: SpySettings; onStart
         </View>
       ))}
 
-      <SectionHeader title="Game Rules & Knobs" icon="sliders" />
-      <View style={styles.rulesCard}>
-        <RuleRow title="Discussion Timer" subtitle="Time to question each other">
-          <Segmented
-            options={TIMER_OPTIONS}
-            value={discussSeconds as (typeof TIMER_OPTIONS)[number]}
-            onChange={setDiscussSeconds}
-            format={(s) => `${s / 60}m`}
-          />
-        </RuleRow>
-        <RuleRow title="Rounds" subtitle="A new spy and word each round">
-          <Stepper value={rounds} onChange={setRounds} min={1} max={20} label="rounds" />
-        </RuleRow>
-        <RuleRow title="Voting" subtitle={voting === 'secret' ? 'Pass the phone for secret ballots' : 'Point together, tap who is out'}>
-          <Segmented options={VOTING_OPTIONS} value={voting} onChange={setVoting} format={(v) => (v === 'secret' ? 'Secret' : 'Point')} />
-        </RuleRow>
-        <RuleRow title="Spy Hint" subtitle="The spy sees which pack the word is from" last>
-          <Toggle value={spyHint} onChange={setSpyHint} color={colors.pinkStrong} label="Spy hint" />
-        </RuleRow>
+      <View style={{ marginTop: 24 }}>
+        <Disclosure title="Settings" summary={summary}>
+          <RuleRow title="Discussion timer">
+            <Segmented
+              options={TIMER_OPTIONS}
+              value={discussSeconds as (typeof TIMER_OPTIONS)[number]}
+              onChange={setDiscussSeconds}
+              format={(s) => `${s / 60}m`}
+            />
+          </RuleRow>
+          <RuleRow title="Rounds">
+            <Stepper value={rounds} onChange={setRounds} min={1} max={20} label="rounds" />
+          </RuleRow>
+          <RuleRow title="Voting">
+            <Segmented options={VOTING_OPTIONS} value={voting} onChange={setVoting} format={(v) => (v === 'secret' ? 'Secret' : 'Point')} />
+          </RuleRow>
+          <RuleRow title="Show the spy the pack" last>
+            <Toggle value={spyHint} onChange={setSpyHint} label="Show the spy the pack" />
+          </RuleRow>
+        </Disclosure>
       </View>
 
       <Button
-        label={packIds.length === 0 ? 'PICK AT LEAST ONE PACK' : 'START GAME • FIND THE SPY 🕵🏾'}
+        label={packIds.length === 0 ? 'Pick at least one pack' : 'Start game'}
         size="lg"
         disabled={!canStart}
         onPress={start}
         style={{ marginTop: 28 }}
       />
-      <View style={styles.firstTurn}>
-        <Icon name="smartphone" size={14} color={colors.coral} />
-        <Text style={styles.firstTurnText}>
-          First peek: Hand phone to <Text style={{ color: colors.coral }}>{players[0]?.name.trim() || fallbackName(0)}</Text>
-        </Text>
-      </View>
     </ScrollView>
   );
 }
 
-function RuleRow({ title, subtitle, children, last }: { title: string; subtitle: string; children: ReactNode; last?: boolean }) {
+function RuleRow({ title, children, last }: { title: string; children: ReactNode; last?: boolean }) {
   return (
     <View style={[styles.ruleRow, !last && styles.ruleDivider]}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.ruleTitle}>{title}</Text>
-        <Text style={styles.ruleSub}>{subtitle}</Text>
-      </View>
+      <Text style={styles.ruleTitle}>{title}</Text>
       {children}
     </View>
   );
@@ -231,11 +184,6 @@ function RuleRow({ title, subtitle, children, last }: { title: string; subtitle:
 
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
-  gameCard: { borderRadius: radius.lg, padding: 18, borderWidth: 1, borderColor: colors.surfaceHigh },
-  gameTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  gameTitle: { fontFamily: fonts.display, color: colors.text, fontSize: 24 },
-  edition: { fontFamily: fonts.bold, color: colors.pink, fontSize: 11, letterSpacing: 0.8 },
-  howTo: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 14, lineHeight: 20, marginTop: 14 },
   playerList: { gap: 8 },
   playerRow: {
     flexDirection: 'row',
@@ -244,36 +192,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
-  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  playerInput: { flex: 1, fontFamily: fonts.semibold, fontSize: 16, color: colors.text, paddingVertical: 8 },
+  avatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  playerInput: { flex: 1, fontFamily: fonts.medium, fontSize: 16, color: colors.text, paddingVertical: 8 },
   addPlayer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
-  addPlayerText: { fontFamily: fonts.bold, color: colors.primary, fontSize: 13 },
-  link: { fontFamily: fonts.bold, color: colors.primary, fontSize: 13 },
-  packSummary: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  collection: { fontFamily: fonts.bold, color: colors.textMuted, fontSize: 13, marginTop: 14, marginBottom: 10 },
-  packGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  addPlayerText: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 14 },
+  link: { fontFamily: fonts.semibold, color: colors.primary, fontSize: 13 },
+  collection: { fontFamily: fonts.semibold, color: colors.textDim, fontSize: 12, marginTop: 12, marginBottom: 8 },
+  packGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   packTile: {
     flexBasis: '47%',
     flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: 14,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     borderWidth: 1.5,
     borderColor: colors.surface,
   },
-  packTileOn: { backgroundColor: '#2A2236', borderColor: colors.primary },
-  packTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  check: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  packCount: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 11 },
-  packTitle: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 16, marginTop: 10 },
-  packSub: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 12, marginTop: 2, lineHeight: 16 },
-  rulesCard: { backgroundColor: colors.surface, borderRadius: radius.lg, paddingHorizontal: 20 },
-  ruleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 18 },
+  packTileOn: { borderColor: colors.primary },
+  packTitle: { flex: 1, fontFamily: fonts.semibold, color: colors.text, fontSize: 14 },
+  ruleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 14 },
   ruleDivider: { borderBottomWidth: 1, borderBottomColor: colors.surfaceHighest },
-  ruleTitle: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 18 },
-  ruleSub: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 13, marginTop: 2 },
-  firstTurn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14 },
-  firstTurnText: { fontFamily: fonts.bold, fontSize: 12, color: colors.textMuted },
+  ruleTitle: { flex: 1, fontFamily: fonts.medium, color: colors.text, fontSize: 15 },
 });

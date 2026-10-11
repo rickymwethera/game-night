@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Icon, Pill, type } from '../../components/ui';
+import { Button, Icon, type } from '../../components/ui';
 import { shortTeamName } from '../../core/types';
 import { colors, fonts, radius } from '../../theme';
 import {
@@ -34,7 +34,7 @@ function ScorePod({ state }: { state: TriviaState }) {
         <View key={t.id} style={styles.podItem}>
           {i > 0 && <View style={styles.podDot} />}
           <Text style={[styles.podName, { color: t.color }]} numberOfLines={1}>
-            {shortTeamName(t.name).toUpperCase()}
+            {shortTeamName(t.name)}
           </Text>
           <Text style={styles.podScore}>{state.scores[t.id]}</Text>
         </View>
@@ -56,14 +56,13 @@ function Hud({ state }: { state: TriviaState }) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.hudTeam, { color: team.color }]} numberOfLines={1}>
-            {team.name.toUpperCase()} ●
+            {team.name}
           </Text>
           <Text style={styles.hudSub} numberOfLines={1}>
-            Question <Text style={{ color: colors.primary }}>{number}</Text> of {questionsPerTurn} •{' '}
-            {state.scores[team.id]} pts
+            Question {number} of {questionsPerTurn} · {state.scores[team.id]} pts
           </Text>
         </View>
-        {streak >= 2 && <Pill label={`${streak} IN A ROW`} icon="zap" bg={colors.orange} fg="#FFE4D8" />}
+        {streak >= 2 && <Text style={styles.streak}>{streak} in a row</Text>}
       </View>
       {state.settings.teams.length > 1 && <ScorePod state={state} />}
       {rounds > 1 && (
@@ -82,24 +81,15 @@ export function HandoffView({ state, dispatch }: { state: TriviaState; dispatch:
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.handoff}>
-        <Pill
-          label={solo ? 'GET READY' : 'PASS THE PHONE'}
-          icon={solo ? 'help-circle' : 'smartphone'}
-          bg="#3A2F55"
-          fg={colors.primary}
-          style={{ alignSelf: 'center' }}
-        />
-        <View style={[styles.bigAvatar, { backgroundColor: team.color, shadowColor: team.color }]}>
-          <Text style={{ fontSize: 56 }}>{team.emoji}</Text>
+        <Text style={type.label}>{solo ? 'Get ready' : 'Pass the phone to'}</Text>
+        <View style={[styles.bigAvatar, { backgroundColor: team.color }]}>
+          <Text style={{ fontSize: 40 }}>{team.emoji}</Text>
         </View>
         <Text style={styles.handoffName}>{team.name}</Text>
         <Text style={styles.handoffSub}>
-          {questionsPerTurn} questions coming up{state.settings.rounds > 1 ? ` • Round ${state.round}` : ''}
-        </Text>
-        <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
-          {answerSeconds > 0
-            ? `${answerSeconds} seconds per question. Right answers score 100, plus up to 50 more for speed. Teammates can help, rivals stay quiet!`
-            : 'No timer this game. Talk it over, then pick an answer for 100 points. Rivals stay quiet!'}
+          {questionsPerTurn} questions
+          {answerSeconds > 0 ? ` · ${answerSeconds}s each` : ''}
+          {state.settings.rounds > 1 ? ` · Round ${state.round}` : ''}
         </Text>
       </View>
       {!solo && (
@@ -108,7 +98,7 @@ export function HandoffView({ state, dispatch }: { state: TriviaState; dispatch:
         </View>
       )}
       <Button
-        label="I'M READY • FIRST QUESTION"
+        label="I'm ready"
         size="lg"
         onPress={() => dispatch({ type: 'START_TURN', now: Date.now() })}
       />
@@ -136,7 +126,7 @@ function TimerBar({ endsAt, total, onTimeUp }: { endsAt: number; total: number; 
 
   const secondsLeft = Math.ceil(msLeft / 1000);
   const urgent = secondsLeft <= 3;
-  const color = urgent ? colors.pinkStrong : colors.coral;
+  const color = urgent ? colors.danger : colors.primary;
   return (
     <View style={styles.timerRow}>
       <View style={styles.timerTrack}>
@@ -182,24 +172,24 @@ export function QuestionView({ state, dispatch, soundOn }: { state: TriviaState;
       <Hud state={state} />
 
       <View style={styles.questionCard}>
-        <Pill label={`${pack.emoji} ${pack.title.toUpperCase()}`} bg={colors.surfaceHighest} fg={colors.coral} style={{ alignSelf: 'flex-start' }} />
+        <Text style={type.label}>{pack.title}</Text>
         <Text style={styles.questionText}>{q.q}</Text>
       </View>
 
       {state.endsAt != null ? (
         <TimerBar endsAt={state.endsAt} total={state.settings.answerSeconds} onTimeUp={onTimeUp} />
       ) : revealed && last ? (
-        <View style={[styles.verdict, { backgroundColor: last.correct ? '#1E3A2C' : '#3A1F24' }]}>
+        <View style={styles.verdict}>
           <Icon
             name={last.correct ? 'check-circle' : last.picked ? 'x-circle' : 'clock'}
             size={20}
             color={last.correct ? colors.success : colors.danger}
           />
           <Text style={[styles.verdictText, { color: last.correct ? colors.success : colors.danger }]}>
-            {last.correct ? `Correct! +${last.points} points` : last.picked ? 'Not quite!' : "Time's up!"}
+            {last.correct ? `Correct, +${last.points} points` : last.picked ? 'Not quite' : "Time's up"}
           </Text>
           <Button
-            label={turnDone ? 'DONE' : 'NEXT'}
+            label={turnDone ? 'Done' : 'Next'}
             iconRight="arrow-right"
             size="sm"
             onPress={() => dispatch({ type: 'NEXT', now: Date.now() })}
@@ -207,7 +197,7 @@ export function QuestionView({ state, dispatch, soundOn }: { state: TriviaState;
           />
         </View>
       ) : (
-        <Text style={styles.prompt}>PICK ONE ANSWER</Text>
+        <Text style={styles.prompt}>Pick one answer</Text>
       )}
 
       <View style={styles.options}>
@@ -236,14 +226,14 @@ export function QuestionView({ state, dispatch, soundOn }: { state: TriviaState;
               <Text
                 style={[
                   styles.optionText,
-                  revealed && isAnswer && { color: '#06301A' },
-                  revealed && isPicked && !isAnswer && { color: '#3D0A10' },
+                  revealed && isAnswer && { color: colors.background },
+                  revealed && isPicked && !isAnswer && { color: colors.background },
                 ]}
               >
                 {option}
               </Text>
               {revealed && (isAnswer || isPicked) && (
-                <Icon name={isAnswer ? 'check' : 'x'} size={18} color={isAnswer ? '#06301A' : '#3D0A10'} />
+                <Icon name={isAnswer ? 'check' : 'x'} size={18} color={colors.background} />
               )}
             </Pressable>
           );
@@ -266,12 +256,12 @@ export function TurnOverView({ state, dispatch }: { state: TriviaState; dispatch
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.summaryHead}>
-        <Pill label="TURN COMPLETE" icon="award" bg={colors.orange} fg="#FFE4D8" style={{ alignSelf: 'center' }} />
+        <Text style={type.label}>Turn over</Text>
         <Text style={styles.summaryScore}>
           {correct}/{total}
         </Text>
         <Text style={styles.summarySub}>
-          right for <Text style={{ color: team.color }}>{team.name}</Text> • +{points} points
+          right for {team.name} · +{points} points
         </Text>
       </View>
       <View style={styles.resultsCard}>
@@ -286,7 +276,7 @@ export function TurnOverView({ state, dispatch }: { state: TriviaState; dispatch
                 {!a.correct && <Text style={styles.resultMiss}>{a.picked ? `You said ${a.picked}` : 'Ran out of time'}</Text>}
               </View>
               <View style={[styles.resultMark, { backgroundColor: a.correct ? colors.primary : colors.surfaceHighest }]}>
-                <Icon name={a.correct ? 'check' : 'x'} size={14} color={a.correct ? colors.onPrimary : colors.coral} />
+                <Icon name={a.correct ? 'check' : 'x'} size={14} color={a.correct ? colors.onPrimary : colors.textDim} />
               </View>
             </View>
           );
@@ -299,7 +289,7 @@ export function TurnOverView({ state, dispatch }: { state: TriviaState; dispatch
         </View>
       )}
       <Button
-        label={finished ? 'SEE FINAL RESULTS 🏆' : `NEXT: ${nextTeam.name.toUpperCase()}`}
+        label={finished ? 'See results' : `Next: ${nextTeam.name}`}
         size="lg"
         onPress={() => dispatch({ type: 'NEXT_TURN' })}
         style={{ marginTop: 24 }}
@@ -313,7 +303,8 @@ const styles = StyleSheet.create({
   hud: { backgroundColor: colors.surfaceLow, borderRadius: radius.lg, padding: 14, borderWidth: 1, borderColor: colors.surfaceHigh },
   hudRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  hudTeam: { fontFamily: fonts.extrabold, fontSize: 14, letterSpacing: 0.8 },
+  hudTeam: { fontFamily: fonts.semibold, fontSize: 14 },
+  streak: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 13 },
   hudSub: { fontFamily: fonts.medium, color: colors.text, fontSize: 15 },
   scorePod: {
     flexDirection: 'row',
@@ -329,23 +320,12 @@ const styles = StyleSheet.create({
   },
   podItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   podDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.textDim, marginHorizontal: 4 },
-  podName: { fontFamily: fonts.extrabold, fontSize: 12, letterSpacing: 0.8 },
-  podScore: { fontFamily: fonts.display, color: colors.text, fontSize: 22 },
+  podName: { fontFamily: fonts.semibold, fontSize: 12 },
+  podScore: { fontFamily: fonts.display, color: colors.text, fontSize: 18 },
   handoff: { alignItems: 'center', paddingVertical: 32 },
-  bigAvatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-    shadowOpacity: 0.55,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
-  },
-  handoffName: { fontFamily: fonts.display, color: colors.text, fontSize: 40, marginTop: 20, textAlign: 'center', letterSpacing: -0.8 },
-  handoffSub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 16, marginTop: 2 },
+  bigAvatar: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  handoffName: { fontFamily: fonts.display, color: colors.text, fontSize: 28, marginTop: 16, textAlign: 'center' },
+  handoffSub: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 15, marginTop: 4, textAlign: 'center' },
   questionCard: {
     backgroundColor: colors.surface,
     borderRadius: 32,
@@ -357,13 +337,13 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceHigh,
   },
   questionText: { fontFamily: fonts.display, color: colors.text, fontSize: 26, lineHeight: 32, letterSpacing: -0.3 },
-  prompt: { ...type.label, color: colors.textMuted, fontSize: 12, letterSpacing: 2, textAlign: 'center', marginVertical: 14 },
+  prompt: { ...type.label, fontSize: 13, textAlign: 'center', marginVertical: 14 },
   timerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 12 },
   timerTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.surfaceHighest, overflow: 'hidden' },
   timerFill: { height: '100%', borderRadius: 5 },
   timerText: { fontFamily: fonts.display, fontSize: 20, width: 40, textAlign: 'right' },
-  verdict: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: radius.md, paddingLeft: 14, paddingRight: 6, paddingVertical: 6, marginVertical: 8 },
-  verdictText: { flex: 1, fontFamily: fonts.bold, fontSize: 15 },
+  verdict: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: radius.md, paddingLeft: 14, paddingRight: 6, paddingVertical: 6, marginVertical: 8 },
+  verdictText: { flex: 1, fontFamily: fonts.semibold, fontSize: 15 },
   nextBtn: { paddingHorizontal: 18 },
   options: { gap: 8 },
   option: {
@@ -381,11 +361,11 @@ const styles = StyleSheet.create({
   optionWrong: { backgroundColor: colors.danger },
   optionDim: { opacity: 0.45 },
   letter: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceHighest, alignItems: 'center', justifyContent: 'center' },
-  letterText: { fontFamily: fonts.extrabold, color: colors.text, fontSize: 14 },
-  optionText: { flex: 1, fontFamily: fonts.bold, color: colors.text, fontSize: 17 },
+  letterText: { fontFamily: fonts.semibold, color: colors.text, fontSize: 14 },
+  optionText: { flex: 1, fontFamily: fonts.semibold, color: colors.text, fontSize: 17 },
   summaryHead: { alignItems: 'center', paddingVertical: 16 },
-  summaryScore: { fontFamily: fonts.display, color: colors.primary, fontSize: 64, letterSpacing: -2, marginTop: 10 },
-  summarySub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 15, textAlign: 'center' },
+  summaryScore: { fontFamily: fonts.display, color: colors.text, fontSize: 48, marginTop: 8 },
+  summarySub: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 15, textAlign: 'center' },
   resultsCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 18, marginTop: 8 },
   resultRow: {
     flexDirection: 'row',
@@ -397,7 +377,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   resultQ: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 13 },
-  resultA: { fontFamily: fonts.bold, color: colors.text, fontSize: 15, marginTop: 3 },
+  resultA: { fontFamily: fonts.semibold, color: colors.text, fontSize: 15, marginTop: 3 },
   resultMiss: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 12, marginTop: 1 },
   resultMark: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

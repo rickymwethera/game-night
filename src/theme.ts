@@ -1,4 +1,4 @@
-// Tokens sampled from the Game Night Figma designs (Material-style dark palette).
+// Calm dark palette: neutral surfaces with a single lavender accent.
 export const colors = {
   background: '#11141D',
   surfaceLowest: '#0C0F18',
@@ -12,24 +12,10 @@ export const colors = {
   textMuted: '#C4C6D0',
   textDim: '#8E909A',
 
-  primary: '#D0BCFF', // lavender
-  primaryStrong: '#A078FF',
+  primary: '#D0BCFF', // lavender, the only accent
   onPrimary: '#3C0091',
-  coral: '#FFB59D',
-  coralStrong: '#FF8A5B',
-  orange: '#B83900',
-  pink: '#FFB0CD',
-  pinkStrong: '#F15CA0',
-  onPink: '#640039',
   success: '#7CE0A3',
   danger: '#FF8A80',
-};
-
-export const gradients = {
-  hero: ['#181B25', '#2A2445', '#493D73'] as const,
-  quickPlay: ['#8B6CE0', '#6C51B4', '#AF3917'] as const,
-  gotIt: ['#B794FF', '#A078FF'] as const,
-  title: ['#FFB0CD', '#FEB3AB'] as const,
 };
 
 export const fonts = {

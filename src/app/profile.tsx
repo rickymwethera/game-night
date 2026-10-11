@@ -1,14 +1,11 @@
 import Constants from 'expo-constants';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { AppHeader, Button, Icon, Screen, SectionHeader, TextField, Toggle, type IconName, type } from '../components/ui';
+import { AppHeader, Button, Screen, SectionHeader, TextField, Toggle, type } from '../components/ui';
 import { accountActions, useAccount } from '../core/account';
 import { appActions, useAppState } from '../core/store';
-import type { GameId } from '../core/types';
-import { getGame } from '../games/registry';
-import { colors, fonts, gradients, radius } from '../theme';
+import { colors, fonts, radius } from '../theme';
 
 const AVATARS = ['🎲', '🦁', '🦏', '🐆', '🐘', '🦒', '🦓', '🎭', '🎤', '⚽', '🍖', '👑'];
 
@@ -16,7 +13,7 @@ export default function ProfileScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   return (
     <Screen>
-      <AppHeader variant="session" title="PROFILE & SETTINGS" onBack={back} hideProfile />
+      <AppHeader variant="session" title="Profile" onBack={back} hideProfile />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <ProfileHero />
         <EditProfile />
@@ -30,47 +27,20 @@ export default function ProfileScreen() {
 
 function ProfileHero() {
   const profile = useAppState((s) => s.profile);
-  const history = useAppState((s) => s.history);
   const user = useAccount((s) => s.user);
-
-  const counts = new Map<GameId, number>();
-  history.forEach((g) => counts.set(g.gameId, (counts.get(g.gameId) ?? 0) + 1));
-  const favourite = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  const favouriteGame = favourite ? getGame(favourite) : undefined;
-
   return (
-    <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-      <View style={styles.heroTop}>
-        <View style={styles.bigAvatar}>
-          <Text style={{ fontSize: 40 }}>{profile.avatar}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.heroName} numberOfLines={1}>
-            {profile.displayName || 'Guest Player'}
-          </Text>
-          <View style={styles.heroStatus}>
-            <Icon name={user ? 'cloud' : 'smartphone'} size={12} color={user ? colors.success : colors.coral} />
-            <Text style={styles.heroStatusText} numberOfLines={1}>
-              {user ? user.email : 'Guest • saved on this phone'}
-            </Text>
-          </View>
-        </View>
+    <View style={styles.hero}>
+      <View style={styles.bigAvatar}>
+        <Text style={{ fontSize: 34 }}>{profile.avatar}</Text>
       </View>
-      <View style={styles.stats}>
-        <Stat value={String(history.length)} label="Games played" />
-        <Stat value={favouriteGame ? `${favouriteGame.emoji} ${favouriteGame.title}` : '—'} label="Favourite game" />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.heroName} numberOfLines={1}>
+          {profile.displayName || 'Guest'}
+        </Text>
+        <Text style={styles.heroStatusText} numberOfLines={1}>
+          {user ? user.email : 'Saved on this phone'}
+        </Text>
       </View>
-    </LinearGradient>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue} numberOfLines={1}>
-        {value}
-      </Text>
-      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
@@ -100,11 +70,10 @@ function EditProfile() {
 
   return (
     <>
-      <SectionHeader title="Your Player Card" icon="user" iconColor={colors.primary} subtitle="How you show up at game night" />
+      <SectionHeader title="Player card" />
       <View style={styles.card}>
         <TextField
           label="Display name"
-          icon="edit-3"
           value={name}
           onChangeText={(t) => {
             setName(t);
@@ -144,7 +113,6 @@ function EditProfile() {
           )}
           <Button
             label={saving ? 'Saving…' : 'Save'}
-            icon="check"
             size="sm"
             disabled={!dirty || saving}
             onPress={save}
@@ -171,31 +139,21 @@ function AccountSection() {
     else setConfirmDelete(false);
   };
 
+  if (!configured) return null;
   return (
     <>
-      <SectionHeader title="Account" icon="shield" iconColor={colors.pink} subtitle="Optional. Every game works without one." />
-      {!configured ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Accounts are coming soon</Text>
-          <Text style={[type.body, { marginTop: 6 }]}>
-            Your name, avatar and game history are saved on this phone, so you can keep playing offline.
-          </Text>
-        </View>
-      ) : !ready ? (
+      <SectionHeader title="Account" />
+      {!ready ? (
         <View style={[styles.card, { alignItems: 'center' }]}>
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : !user ? (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Take your player card anywhere</Text>
-          <Text style={[type.body, { marginTop: 6 }]}>
-            Create a free account to keep your name and avatar when you switch phones.
-          </Text>
+          <Text style={type.body}>Optional. Keeps your name and avatar when you switch phones.</Text>
           <Button
             label="Create account"
-            icon="user-plus"
             onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-up' } })}
-            style={{ marginTop: 18 }}
+            style={{ marginTop: 16 }}
           />
           <Button
             label="I already have an account"
@@ -206,16 +164,14 @@ function AccountSection() {
         </View>
       ) : (
         <View style={styles.card}>
-          <Row icon="mail" title="Signed in as" detail={user.email} />
+          <Row title="Signed in as" detail={user.email} />
           <Row
-            icon="calendar"
             title="Member since"
             detail={new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
             last
           />
           <Button
             label="Sign out"
-            icon="log-out"
             variant="secondary"
             disabled={busy}
             onPress={() => run(accountActions.signOut)}
@@ -224,7 +180,6 @@ function AccountSection() {
           {!confirmDelete ? (
             <Button
               label="Delete account"
-              icon="trash-2"
               variant="ghost"
               disabled={busy}
               onPress={() => setConfirmDelete(true)}
@@ -265,15 +220,15 @@ function SettingsSection() {
 
   return (
     <>
-      <SectionHeader title="Settings" icon="sliders" iconColor={colors.coral} />
+      <SectionHeader title="Settings" />
       <View style={styles.card}>
-        <Row icon="volume-2" title="Buzz & haptics" detail="Countdown buzz and vibration during turns">
-          <Toggle value={soundOn} onChange={appActions.setSoundOn} label="Buzz and haptics" />
+        <Row title="Buzz and vibration">
+          <Toggle value={soundOn} onChange={appActions.setSoundOn} label="Buzz and vibration" />
         </Row>
-        <Row icon="eye-off" title="18+ decks" detail="Show adults-only decks and content">
-          <Toggle value={adult} onChange={appActions.setAdultContent} color={colors.pinkStrong} label="Adults-only content" />
+        <Row title="Adults-only (18+) content">
+          <Toggle value={adult} onChange={appActions.setAdultContent} label="Adults-only content" />
         </Row>
-        <Row icon="award" title="Game history" detail={`${games} ${games === 1 ? 'game' : 'games'} saved on this phone`} last>
+        <Row title="Game history" detail={`${games} ${games === 1 ? 'game' : 'games'} saved`} last>
           {confirmClear ? (
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <Button label="Cancel" variant="secondary" size="sm" onPress={() => setConfirmClear(false)} />
@@ -298,13 +253,11 @@ function SettingsSection() {
 }
 
 function Row({
-  icon,
   title,
   detail,
   children,
   last,
 }: {
-  icon: IconName;
   title: string;
   detail?: string;
   children?: ReactNode;
@@ -312,9 +265,6 @@ function Row({
 }) {
   return (
     <View style={[styles.row, !last && styles.rowDivider]}>
-      <View style={styles.rowIcon}>
-        <Icon name={icon} size={16} color={colors.primary} />
-      </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.rowTitle}>{title}</Text>
         {detail && (
@@ -330,27 +280,18 @@ function Row({
 
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
-  hero: { borderRadius: radius.lg, padding: 22, borderWidth: 1, borderColor: colors.surfaceHigh },
-  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 8 },
   bigAvatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.primary,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surfaceHigh,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.18)',
   },
-  heroName: { fontFamily: fonts.display, color: colors.text, fontSize: 26, letterSpacing: -0.5 },
-  heroStatus: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  heroStatusText: { flex: 1, fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 12 },
-  stats: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  stat: { flex: 1, backgroundColor: 'rgba(12,15,24,0.55)', borderRadius: 18, padding: 14 },
-  statValue: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 18 },
-  statLabel: { fontFamily: fonts.semibold, color: colors.coral, fontSize: 11, marginTop: 2 },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 18 },
-  cardTitle: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 18 },
+  heroName: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 22 },
+  heroStatusText: { fontFamily: fonts.body, color: colors.textDim, fontSize: 13, marginTop: 2 },
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 18 },
   avatars: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   avatarOption: {
     width: 44,
@@ -362,20 +303,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  avatarSelected: { borderColor: colors.primary, backgroundColor: '#3A2F55' },
+  avatarSelected: { borderColor: colors.primary },
   saveRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18 },
   statusText: { flex: 1, fontFamily: fonts.semibold, fontSize: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   rowDivider: { borderBottomWidth: 1, borderBottomColor: colors.surfaceHigh },
-  rowIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.surfaceHighest,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowTitle: { fontFamily: fonts.bold, color: colors.text, fontSize: 14 },
+  rowTitle: { fontFamily: fonts.semibold, color: colors.text, fontSize: 15 },
   rowDetail: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 12, marginTop: 2 },
   danger: {
     marginTop: 14,

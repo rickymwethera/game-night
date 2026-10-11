@@ -4,26 +4,22 @@ import type { GameId } from '../core/types';
 
 export type GameTag = 'acting' | 'social' | 'quick' | 'brainy';
 
-export const GAME_TAGS: { id: GameTag; label: string; icon: IconName }[] = [
-  { id: 'acting', label: 'Acting & Energy', icon: 'zap' },
-  { id: 'social', label: 'Social & Bluff', icon: 'eye' },
-  { id: 'quick', label: 'Quick Fire', icon: 'clock' },
-  { id: 'brainy', label: 'Brainy', icon: 'award' },
+export const GAME_TAGS: { id: GameTag; label: string }[] = [
+  { id: 'acting', label: 'Acting' },
+  { id: 'social', label: 'Social' },
+  { id: 'quick', label: 'Quick' },
+  { id: 'brainy', label: 'Brainy' },
 ];
 
 export interface GameInfo {
   id: GameId;
   title: string;
-  /** One line for the home list. */
+  /** One short line shown under the title. */
   tagline: string;
-  /** Longer pitch for the games tab. */
-  description: string;
   emoji: string;
   icon: IconName;
   image?: ImageSourcePropType;
-  badge: { label: string; icon: IconName; bg: string; fg: string };
   players: string;
-  pills: { label: string; icon: IconName }[];
   rules: string[];
   tags: GameTag[];
   available: boolean;
@@ -34,18 +30,10 @@ export const GAMES: GameInfo[] = [
     id: 'charades',
     title: 'Charades',
     tagline: 'Act it out, no talking allowed.',
-    description:
-      'Act out Kenyan celebrities, Sheng, songs, football and food before the buzzer! 180 prompts across six decks.',
     emoji: '🎭',
     icon: 'smile',
     image: require('../../assets/images/game-charades.jpg'),
-    badge: { label: 'POPULAR PICK', icon: 'star', bg: '#A078FF', fg: '#1A0050' },
     players: '4+ Players',
-    pills: [
-      { label: 'Team Mode', icon: 'users' },
-      { label: '60s Turns', icon: 'clock' },
-      { label: '6 Decks', icon: 'layers' },
-    ],
     rules: [
       'Split into teams. One actor per turn gets the phone.',
       'Act out the word without speaking. Your team shouts guesses.',
@@ -58,18 +46,10 @@ export const GAMES: GameInfo[] = [
     id: 'spy-among-us',
     title: 'Spy Among Us',
     tagline: 'Secret words, one spy, many lies.',
-    description:
-      'One phone passed around reveals the secret word to everyone except the spy. Question carefully, bluff naturally, and cast your vote.',
     emoji: '🕵🏾',
     icon: 'eye',
     image: require('../../assets/images/game-spy.jpg'),
-    badge: { label: 'PASS-THE-PHONE', icon: 'smartphone', bg: '#2D303A', fg: '#E1E2EC' },
     players: '3–10 Players',
-    pills: [
-      { label: 'Social Deduction', icon: 'help-circle' },
-      { label: 'Single Device', icon: 'smartphone' },
-      { label: '8 Word Packs', icon: 'layers' },
-    ],
     rules: [
       'Everyone peeks at the phone in turn. One player is secretly the spy.',
       'Ask each other questions about the word. The spy has to bluff.',
@@ -82,17 +62,10 @@ export const GAMES: GameInfo[] = [
     id: 'most-likely-to',
     title: "Who's Most Likely To?",
     tagline: 'Group confessions and pointing.',
-    description:
-      'Spicy, hilarious and brutally honest party voting. Reveal truths, settle debates, and find out what your friends really think on 3, 2, 1… point!',
     emoji: '👉🏾',
     icon: 'thumbs-up',
     image: require('../../assets/images/game-most-likely.jpg'),
-    badge: { label: 'SPICY & CHILL', icon: 'sun', bg: '#B83900', fg: '#FFE4D8' },
     players: '4–20 Players',
-    pills: [
-      { label: '250+ Prompts', icon: 'message-square' },
-      { label: 'No Eliminations', icon: 'smile' },
-    ],
     rules: ['Read the statement out loud.', 'Count down from three and everyone points.', 'Most fingers takes the title.'],
     tags: ['social'],
     available: false,
@@ -101,18 +74,10 @@ export const GAMES: GameInfo[] = [
     id: 'five-second',
     title: '5-Second Challenge',
     tagline: 'Name three. Five seconds. Go!',
-    description:
-      'Name THREE things in a category before the buzzer! 240 Kenyan and global prompts, steals for the next player, and non-stop brain freezes.',
     emoji: '⏱️',
     icon: 'clock',
     image: require('../../assets/images/game-five-second.jpg'),
-    badge: { label: 'HIGH ADRENALINE', icon: 'activity', bg: '#F15CA0', fg: '#3D0020' },
     players: '2–12 Players',
-    pills: [
-      { label: '5s Buzzer', icon: 'zap' },
-      { label: 'Steals', icon: 'shuffle' },
-      { label: '8 Packs', icon: 'layers' },
-    ],
     rules: [
       'Pass the phone. A category pops up and the five seconds start.',
       'Name three things that fit. Everyone else taps once for each answer.',
@@ -125,17 +90,9 @@ export const GAMES: GameInfo[] = [
     id: 'trivia',
     title: 'Trivia',
     tagline: 'Kenyan culture, music and football.',
-    description:
-      '180 questions on Kenyan culture, music, football, geography, general knowledge and pop culture. Play solo or in teams, and chase the leaderboard.',
     emoji: '🧠',
     icon: 'award',
-    badge: { label: 'TEAM MODE', icon: 'users', bg: '#2D303A', fg: '#E1E2EC' },
     players: '1–4 Teams',
-    pills: [
-      { label: 'Leaderboard', icon: 'bar-chart-2' },
-      { label: 'Solo or Teams', icon: 'users' },
-      { label: '6 Packs', icon: 'layers' },
-    ],
     rules: [
       'Pick your question packs, then pass the phone between teams.',
       'Each team answers its own run of questions from four choices.',
@@ -148,15 +105,9 @@ export const GAMES: GameInfo[] = [
     id: 'dare-or-challenge',
     title: 'Dare or Challenge',
     tagline: 'Spin the wheel, face the music.',
-    description: 'Spin a wheel for funny challenges, impressions, quick performances and group tasks. Clean and adults-only settings.',
     emoji: '🎡',
     icon: 'refresh-cw',
-    badge: { label: 'PARTY STARTER', icon: 'zap', bg: '#2D303A', fg: '#E1E2EC' },
     players: '3+ Players',
-    pills: [
-      { label: 'Spin Wheel', icon: 'refresh-cw' },
-      { label: 'Clean or 18+', icon: 'shield' },
-    ],
     rules: ['Spin the wheel.', 'Do the dare or take the challenge.', 'Refuse and the group picks your forfeit.'],
     tags: ['acting', 'social'],
     available: false,
@@ -165,17 +116,9 @@ export const GAMES: GameInfo[] = [
     id: 'flags',
     title: 'Guess the Flag',
     tagline: 'Every flag on Earth. Name it fast.',
-    description:
-      'All 197 country flags, offline. Play the whole world or pick one continent, then race the clock to name each flag from four choices.',
     emoji: '🏳️',
     icon: 'flag',
-    badge: { label: 'NEW • 197 FLAGS', icon: 'globe', bg: '#1F3A4A', fg: '#BFE6FF' },
     players: '1–4 Teams',
-    pills: [
-      { label: 'Pick a Continent', icon: 'globe' },
-      { label: 'Timer', icon: 'clock' },
-      { label: 'Solo or Teams', icon: 'users' },
-    ],
     rules: [
       'Pick the whole world or one continent.',
       'Each team gets a run of flags. Tap the right country from four choices.',
