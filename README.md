@@ -8,13 +8,15 @@ One app, endless party games. Built with React Native, Expo and TypeScript, so i
 | --- | --- |
 | Charades | Playable |
 | Spy Among Us | Playable |
-| Trivia | Coming soon |
+| Trivia | Playable |
 | Dare or Challenge | Coming soon |
 | Who's Most Likely To? | Coming soon |
 | Five-Second Challenge | Coming soon |
 | Guess the Flag | Playable |
 
 Guess the Flag has all 197 flags bundled in the app, so it works offline: the 193 UN member states plus the Vatican City, Palestine, Kosovo and Taiwan. Play the whole world or one continent, solo or with up to four teams passing the phone. Each flag has four choices from the same continent, with an optional 10 or 15 second timer. Flag images come from [flag-icons](https://github.com/lipis/flag-icons) (MIT license, copy in `assets/flags/LICENSE-flag-icons.txt`).
+
+Trivia has 180 questions in six packs: Kenyan Culture, Kenyan Music, Football, Geography, General Knowledge and Pop Culture. Pick any mix of packs and play solo or with up to four teams passing the phone. Each question has four choices; a right answer scores 100 points plus up to 50 more for speed when the 10 or 20 second timer is on. Every team's final score goes on a leaderboard saved on the phone, so it works offline with no account.
 
 Charades ships with six decks (Kenyan Celebrities, Sheng, Kenyan Music, Football, Food, General), 2 to 4 named teams with players, actor rotation, 45/60/90 second turns, target points, an optional skip penalty, pause, a turn summary where a wrong tap can be fixed, and a results screen with MVPs and party highlights. Finished games are saved to the History tab on the phone.
 
@@ -57,6 +59,7 @@ src/app/                  Screens (Expo Router: every file is a route)
   (tabs)/                 Home, Games, Decks and History tabs with the bottom nav
   games/charades.tsx      Charades
   games/spy-among-us.tsx  Spy Among Us
+  games/trivia.tsx        Trivia
   games/[id].tsx          "Coming soon" page for games not built yet
 src/games/registry.ts     The list of games shown on the home screen
 src/games/charades/
@@ -71,6 +74,13 @@ src/games/spy-among-us/
   SetupView.tsx           Players, word packs and rules setup
   PlayViews.tsx           Peek, discussion, voting, verdict, spy's guess and round result
   ResultsView.tsx         Final standings and spy files
+src/games/trivia/
+  packs/                  One file per question pack (edit here to add questions or packs)
+  engine.ts               Game rules, scoring and leaderboard ranking as pure functions
+  leaderboard.ts          Leaderboard saved on the phone
+  SetupView.tsx           Packs, teams, rules and leaderboard
+  PlayViews.tsx           Hand-off, question and turn summary
+  ResultsView.tsx         Winner, answers to remember and leaderboard
 src/components/ui.tsx     Shared header, buttons, pills, toggles
 src/core/types.ts         Shared Team types
 src/core/store.ts         Game history, profile and preferences, saved on the phone
