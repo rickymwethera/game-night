@@ -12,6 +12,9 @@ One app, endless party games. Built with React Native, Expo and TypeScript, so i
 | Dare or Challenge | Coming soon |
 | Who's Most Likely To? | Coming soon |
 | Five-Second Challenge | Coming soon |
+| Guess the Flag | Playable |
+
+Guess the Flag has all 197 flags bundled in the app, so it works offline: the 193 UN member states plus the Vatican City, Palestine, Kosovo and Taiwan. Play the whole world or one continent, solo or with up to four teams passing the phone. Each flag has four choices from the same continent, with an optional 10 or 15 second timer. Flag images come from [flag-icons](https://github.com/lipis/flag-icons) (MIT license, copy in `assets/flags/LICENSE-flag-icons.txt`).
 
 Charades ships with six decks (Kenyan Celebrities, Sheng, Kenyan Music, Football, Food, General), 2 to 4 named teams with players, actor rotation, 45/60/90 second turns, target points, an optional skip penalty, pause, a turn summary where a wrong tap can be fixed, and a results screen with MVPs and party highlights. Finished games are saved to the History tab on the phone.
 
@@ -51,6 +54,7 @@ npm test
 src/app/                  Screens (Expo Router: every file is a route)
   (tabs)/                 Home, Games, Decks and History tabs with the bottom nav
   games/charades.tsx      Charades
+  games/flags.tsx         Guess the Flag
   games/[id].tsx          "Coming soon" page for games not built yet
 src/games/registry.ts     The list of games shown on the home screen
 src/games/charades/
@@ -59,6 +63,11 @@ src/games/charades/
   SetupView.tsx           Players & squads, deck and rules setup
   PlayViews.tsx           Hand-off, playing (timer ring) and turn summary
   ResultsView.tsx         Winner, MVPs, highlights and rematch
+src/games/flags/
+  countries.ts            Every country, its name and continent
+  flagImages.ts           Bundled flag images (assets/flags/)
+  engine.ts               Game rules as a pure reducer
+  SetupView.tsx, PlayViews.tsx, ResultsView.tsx
 src/components/ui.tsx     Shared header, buttons, pills, toggles
 src/core/types.ts         Shared Team types
 src/core/store.ts         Game history, profile and preferences, saved on the phone
