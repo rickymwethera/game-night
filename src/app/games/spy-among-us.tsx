@@ -4,6 +4,7 @@ import { AppHeader, Screen } from '../../components/ui';
 import { appActions, useAppState } from '../../core/store';
 import {
   createSpyGame,
+  newSeed,
   spyReducer,
   type SpyAction,
   type SpySettings,
@@ -56,7 +57,7 @@ export default function SpyAmongUsScreen() {
         <AppHeader variant="session" title="Spy Among Us" onBack={exit} />
         <SetupView
           initial={mode.settings}
-          onStart={(settings) => dispatch({ type: 'NEW_GAME', state: createSpyGame(settings, Math.floor(Math.random() * 1e9)) })}
+          onStart={(settings) => dispatch({ type: 'NEW_GAME', state: createSpyGame(settings, newSeed()) })}
         />
       </Screen>
     );

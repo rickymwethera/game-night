@@ -1,7 +1,7 @@
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/ui';
 import { colors, fonts, radius } from '../../theme';
-import { matchStats, standings, type SpyAction, type SpyState } from './engine';
+import { matchStats, newSeed, standings, type SpyAction, type SpyState } from './engine';
 
 export function ResultsView({
   state,
@@ -54,7 +54,7 @@ export function ResultsView({
         ))}
       </View>
 
-      <Button label="Play again" size="lg" onPress={() => dispatch({ type: 'PLAY_AGAIN' })} style={{ marginTop: 28 }} />
+      <Button label="Play again" size="lg" onPress={() => dispatch({ type: 'PLAY_AGAIN', seed: newSeed() })} style={{ marginTop: 28 }} />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
         <Button label="Share" variant="secondary" onPress={share} style={{ flex: 1 }} />
         <Button label="Other games" variant="secondary" onPress={onChooseGame} style={{ flex: 1 }} />

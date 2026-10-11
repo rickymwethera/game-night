@@ -103,9 +103,10 @@ export type SpyAction =
   /** From verdict: reveal whether the accused player is the spy. */
   | { type: 'REVEAL' }
   | { type: 'SPY_GUESS'; word: string }
-  | { type: 'NEXT_ROUND' }
+  /** Each new round brings its own random seed, made with newSeed(). */
+  | { type: 'NEXT_ROUND'; seed: number }
   | { type: 'END_GAME' }
-  | { type: 'PLAY_AGAIN' };
+  | { type: 'PLAY_AGAIN'; seed: number };
 
 export const MIN_PLAYERS = 3;
 export const MAX_PLAYERS = 10;
@@ -126,9 +127,13 @@ export const DEFAULT_SETTINGS: Omit<SpySettings, 'players' | 'packIds'> = {
   rounds: 5,
 };
 
-// Small seeded RNG (mulberry32), same as Charades, so every draw is reproducible from state.
+// Small seeded RNG (mulberry32), so every draw is reproducible from the seed in state.
+// The seed is scrambled first: mulberry32's first outputs for nearby seeds are related,
+// which made the spy walk through the players in order from round to round.
 function seededRandom(seed: number): () => number {
-  let a = seed >>> 0;
+  let a = Math.imul((seed >>> 0) ^ 0x9e3779b9, 0x85ebca6b);
+  a = Math.imul(a ^ (a >>> 13), 0xc2b2ae35);
+  a = (a ^ (a >>> 16)) >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
@@ -142,10 +147,19 @@ function pick<T>(items: readonly T[], random: () => number): T {
   return items[Math.floor(random() * items.length)];
 }
 
-/** Deal a fresh round: a new spy, word and first questioner. */
-function dealRound(state: SpyState, round: number): SpyState {
+/** Random seed for a new round or game. The screen makes one and passes it in the action. */
+export function newSeed(): number {
+  return Math.floor(Math.random() * 2 ** 32);
+}
+
+/** Deal a fresh round from its own seed: a new spy, word and first questioner. */
+function dealRound(state: SpyState, round: number, seed: number): SpyState {
   const { players, packIds } = state.settings;
-  const random = seededRandom(state.seed * 31 + round);
+  const random = seededRandom(seed);
+
+  // Anyone can be the spy, including last round's spy, so the pick can't be guessed.
+  const spyId = pick(players, random).id;
+  const starterId = pick(players, random).id;
 
   const all = SPY_PACKS.filter((p) => packIds.includes(p.id)).flatMap((p) => p.words.map((word) => ({ word, packId: p.id })));
   let fresh = all.filter((w) => !state.usedWords.includes(w.word));
@@ -156,12 +170,6 @@ function dealRound(state: SpyState, round: number): SpyState {
   }
   const { word, packId } = pick(fresh, random);
 
-  // Try not to make the same person the spy twice running.
-  const lastSpy = state.history[state.history.length - 1]?.spyId;
-  const spyPool = players.length > 1 ? players.filter((p) => p.id !== lastSpy) : players;
-  const spyId = pick(spyPool, random).id;
-  const starterId = pick(players, random).id;
-
   const decoys = shuffle(
     (getPack(packId)?.words ?? []).filter((w) => w !== word),
     random,
@@ -171,6 +179,7 @@ function dealRound(state: SpyState, round: number): SpyState {
   return {
     ...state,
     phase: 'reveal',
+    seed,
     round,
     spyId,
     word,
@@ -214,7 +223,7 @@ export function createSpyGame(settings: SpySettings, seed: number): SpyState {
     scores: Object.fromEntries(settings.players.map((p) => [p.id, 0])),
     history: [],
   };
-  return dealRound(blank, 1);
+  return dealRound(blank, 1, seed);
 }
 
 export function getPlayer(state: SpyState, id: string | null): SpyPlayer | undefined {
@@ -331,14 +340,14 @@ export function spyReducer(state: SpyState, action: SpyAction): SpyState {
     }
     case 'NEXT_ROUND': {
       if (state.phase !== 'roundOver' || matchDecided(state)) return state;
-      return dealRound(state, state.round + 1);
+      return dealRound(state, state.round + 1, action.seed);
     }
     case 'END_GAME': {
       if (state.phase !== 'roundOver') return state;
       return { ...state, phase: 'gameOver' };
     }
     case 'PLAY_AGAIN':
-      return createSpyGame(state.settings, state.seed + 1);
+      return createSpyGame(state.settings, action.seed);
     default:
       return state;
   }
