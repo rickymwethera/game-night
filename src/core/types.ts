@@ -15,7 +15,8 @@ export type GameId =
   | 'trivia'
   | 'dare-or-challenge'
   | 'most-likely-to'
-  | 'five-second';
+  | 'five-second'
+  | 'flags';
 
 /** How the people at the party are connected. Only 'shared' exists for now. */
 export type DeviceMode = 'shared' | 'own-phones';
