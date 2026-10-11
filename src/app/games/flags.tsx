@@ -1,10 +1,13 @@
 import { router } from 'expo-router';
 import { useEffect, useReducer, useRef, useState } from 'react';
+import { Confetti, FadeIn } from '../../components/motion';
 import { AppHeader, Screen } from '../../components/ui';
+import { earnsConfetti } from '../../core/celebrate';
 import { appActions } from '../../core/store';
 import {
   createFlagsGame,
   flagsReducer,
+  matchStats,
   type FlagsAction,
   type FlagsSettings,
   type FlagsState,
@@ -26,6 +29,8 @@ function modeReducer(mode: Mode, action: ModeAction): Mode {
 export default function FlagsScreen() {
   const [mode, dispatch] = useReducer(modeReducer, { kind: 'setup' });
   const [soundOn, setSoundOn] = useState(true);
+  // The finished game that earned confetti, so a later game never inherits it.
+  const [confettiFor, setConfettiFor] = useState<FlagsState | null>(null);
   const exit = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   // Save each finished game once, for the History tab and the home screen.
@@ -34,6 +39,7 @@ export default function FlagsScreen() {
     if (mode.kind !== 'game' || mode.state.phase !== 'gameOver' || saved.current === mode.state) return;
     saved.current = mode.state;
     const s = mode.state;
+    setConfettiFor(earnsConfetti({ perTeam: Object.values(matchStats(s).perTeam) }) ? s : null);
     appActions.addGame({
       id: `${Date.now()}`,
       gameId: 'flags',
@@ -68,19 +74,22 @@ export default function FlagsScreen() {
         backIcon={state.phase === 'gameOver' ? 'arrow-left' : 'x'}
         onBack={() => (state.phase === 'gameOver' ? exit() : dispatch({ type: 'SETUP' }))}
       />
-      {state.phase === 'handoff' && <HandoffView state={state} dispatch={dispatch} />}
-      {(state.phase === 'question' || state.phase === 'reveal') && (
-        <QuestionView state={state} dispatch={dispatch} soundOn={soundOn} />
-      )}
-      {state.phase === 'turnOver' && <TurnOverView state={state} dispatch={dispatch} />}
-      {state.phase === 'gameOver' && (
-        <ResultsView
-          state={state}
-          dispatch={dispatch}
-          onChangeSettings={() => dispatch({ type: 'SETUP' })}
-          onChooseGame={() => router.replace('/games')}
-        />
-      )}
+      <FadeIn key={state.phase === 'reveal' ? 'question' : state.phase}>
+        {state.phase === 'handoff' && <HandoffView state={state} dispatch={dispatch} />}
+        {(state.phase === 'question' || state.phase === 'reveal') && (
+          <QuestionView state={state} dispatch={dispatch} soundOn={soundOn} />
+        )}
+        {state.phase === 'turnOver' && <TurnOverView state={state} dispatch={dispatch} />}
+        {state.phase === 'gameOver' && (
+          <ResultsView
+            state={state}
+            dispatch={dispatch}
+            onChangeSettings={() => dispatch({ type: 'SETUP' })}
+            onChooseGame={() => router.replace('/games')}
+          />
+        )}
+      </FadeIn>
+      <Confetti active={confettiFor === state} />
     </Screen>
   );
 }

@@ -38,6 +38,10 @@ export const leaderboardActions = {
   add(entries: LeaderboardEntry[]) {
     set(addToLeaderboard(board, entries));
   },
+  /** The best score saved so far, if any. */
+  topScore(): number | undefined {
+    return board[0]?.score;
+  },
   clear() {
     set([]);
   },
