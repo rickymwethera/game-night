@@ -53,7 +53,7 @@ export default function SpyAmongUsScreen() {
   if (mode.kind === 'setup') {
     return (
       <Screen>
-        <AppHeader variant="session" title="SPY AMONG US" onBack={exit} />
+        <AppHeader variant="session" title="Spy Among Us" onBack={exit} />
         <SetupView
           initial={mode.settings}
           onStart={(settings) => dispatch({ type: 'NEW_GAME', state: createSpyGame(settings, Math.floor(Math.random() * 1e9)) })}
@@ -67,7 +67,7 @@ export default function SpyAmongUsScreen() {
     <Screen>
       <AppHeader
         variant="session"
-        title="SPY AMONG US"
+        title="Spy Among Us"
         backIcon={state.phase === 'gameOver' ? 'arrow-left' : 'x'}
         onBack={() => (state.phase === 'gameOver' ? exit() : dispatch({ type: 'SETUP' }))}
       />

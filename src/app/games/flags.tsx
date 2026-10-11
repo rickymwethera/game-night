@@ -46,7 +46,7 @@ export default function FlagsScreen() {
   if (mode.kind === 'setup') {
     return (
       <Screen>
-        <AppHeader variant="session" title="LIVE GAME SESSION" onBack={exit} />
+        <AppHeader variant="session" title="Guess the Flag" onBack={exit} />
         <SetupView
           initial={mode.settings}
           onStart={({ settings, soundOn: sound }) => {
@@ -64,7 +64,7 @@ export default function FlagsScreen() {
     <Screen>
       <AppHeader
         variant="session"
-        title="LIVE GAME SESSION"
+        title="Guess the Flag"
         backIcon={state.phase === 'gameOver' ? 'arrow-left' : 'x'}
         onBack={() => (state.phase === 'gameOver' ? exit() : dispatch({ type: 'SETUP' }))}
       />

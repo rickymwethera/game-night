@@ -46,7 +46,7 @@ export default function FiveSecondScreen() {
   if (mode.kind === 'setup') {
     return (
       <Screen>
-        <AppHeader variant="session" title="5-SECOND CHALLENGE" onBack={exit} />
+        <AppHeader variant="session" title="5-Second Challenge" onBack={exit} />
         <SetupView
           initial={mode.settings}
           onStart={(settings) => dispatch({ type: 'NEW_GAME', state: createFiveGame(settings, Math.floor(Math.random() * 1e9)) })}
@@ -60,7 +60,7 @@ export default function FiveSecondScreen() {
     <Screen>
       <AppHeader
         variant="session"
-        title="5-SECOND CHALLENGE"
+        title="5-Second Challenge"
         backIcon={state.phase === 'gameOver' ? 'arrow-left' : 'x'}
         onBack={() => (state.phase === 'gameOver' ? exit() : dispatch({ type: 'SETUP' }))}
       />

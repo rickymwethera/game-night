@@ -45,7 +45,7 @@ export default function SignInScreen() {
   if (checkEmail) {
     return (
       <Screen>
-        <AppHeader variant="session" title="CHECK YOUR EMAIL" onBack={back} hideProfile />
+        <AppHeader variant="session" title="Check your email" onBack={back} hideProfile />
         <View style={styles.done}>
           <View style={styles.mailCircle}>
             <Icon name="mail" size={36} color={colors.onPrimary} />
@@ -71,7 +71,7 @@ export default function SignInScreen() {
 
   return (
     <Screen>
-      <AppHeader variant="session" title={signUp ? 'CREATE ACCOUNT' : 'SIGN IN'} onBack={back} hideProfile />
+      <AppHeader variant="session" title={signUp ? 'Create account' : 'Sign in'} onBack={back} hideProfile />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.intro}>
@@ -165,8 +165,8 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   intro: { alignItems: 'center', gap: 10, marginTop: 8, marginBottom: 22 },
-  title: { fontFamily: fonts.display, color: colors.text, fontSize: 30, letterSpacing: -0.6, textAlign: 'center' },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 18, gap: 16 },
+  title: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 24, textAlign: 'center' },
+  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 18, gap: 16 },
   error: {
     flexDirection: 'row',
     gap: 8,

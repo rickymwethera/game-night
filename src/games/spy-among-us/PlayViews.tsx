@@ -1,9 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Icon, Pill, type } from '../../components/ui';
+import { Button, Disclosure, type } from '../../components/ui';
 import { colors, fonts, radius } from '../../theme';
 import {
   currentVoter,
@@ -38,22 +37,19 @@ function Avatar({ player, size = 46 }: { player: SpyPlayer; size?: number }) {
 
 function BigAvatar({ player }: { player: SpyPlayer }) {
   return (
-    <View style={[styles.bigAvatar, { backgroundColor: player.color, shadowColor: player.color }]}>
-      <Text style={{ fontSize: 56 }}>{player.emoji}</Text>
+    <View style={[styles.bigAvatar, { backgroundColor: player.color }]}>
+      <Text style={{ fontSize: 44 }}>{player.emoji}</Text>
     </View>
   );
 }
 
-/** Round number and one dot per player, filled as each one has had their go. */
-function Progress({ state, done, label }: { state: SpyState; done: number; label: string }) {
+/** Round number on the left, where we are in this phase on the right. */
+function Progress({ state, label }: { state: SpyState; label: string }) {
   return (
     <View style={styles.progress}>
-      <Pill label={`ROUND ${state.round} OF ${state.settings.rounds}`} bg={colors.surfaceHigh} fg={colors.text} />
-      <View style={styles.dots}>
-        {state.settings.players.map((p, i) => (
-          <View key={p.id} style={[styles.dot, i < done && { backgroundColor: colors.primary }]} />
-        ))}
-      </View>
+      <Text style={styles.progressText}>
+        Round {state.round} of {state.settings.rounds}
+      </Text>
       <Text style={styles.progressText}>{label}</Text>
     </View>
   );
@@ -70,53 +66,37 @@ export function RevealView({ state, dispatch }: { state: SpyState; dispatch: Dis
   if (!state.roleShown) {
     return (
       <ScrollView contentContainerStyle={styles.page}>
-        <Progress state={state} done={state.revealIndex} label={`Peek ${state.revealIndex + 1} of ${players.length}`} />
+        <Progress state={state} label={`Peek ${state.revealIndex + 1} of ${players.length}`} />
         <View style={styles.handoff}>
-          <Pill label="PASS THE PHONE" icon="smartphone" bg="#3A2F55" fg={colors.primary} style={{ alignSelf: 'center' }} />
           <BigAvatar player={player} />
           <Text style={styles.handoffName}>{player.name}</Text>
-          <Text style={styles.handoffSub}>it's your turn to peek</Text>
-          <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
-            Everyone else, look away. Only {player.name} should see the next screen.
-          </Text>
+          <Text style={styles.handoffSub}>Pass the phone. Everyone else, look away.</Text>
         </View>
-        <Button label="TAP TO SEE MY ROLE 👀" size="lg" onPress={() => dispatch({ type: 'SHOW_ROLE' })} />
+        <Button label="See my role" size="lg" onPress={() => dispatch({ type: 'SHOW_ROLE' })} />
       </ScrollView>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Progress state={state} done={state.revealIndex} label={`${player.name}'s secret`} />
+      <Progress state={state} label={`${player.name}'s secret`} />
       {isSpy ? (
-        <LinearGradient colors={['#3D0020', '#640039', '#B83900']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.roleCard}>
-          <Text style={{ fontSize: 64 }}>🕵🏾</Text>
-          <Text style={[type.label, { color: colors.pink, marginTop: 12 }]}>Your role</Text>
-          <Text style={styles.roleWord}>YOU ARE THE SPY</Text>
-          <Text style={styles.roleBody}>
-            You don't know the word. Listen to everyone's answers, blend in, and work out what it is before they catch you.
-          </Text>
-          {state.settings.spyHint && pack && (
-            <View style={styles.hint}>
-              <Icon name="info" size={14} color={colors.pink} />
-              <Text style={styles.hintText}>
-                Hint: the word is from {pack.emoji} {pack.title}
-              </Text>
-            </View>
-          )}
-        </LinearGradient>
+        <View style={styles.roleCard}>
+          <Text style={type.label}>Your role</Text>
+          <Text style={styles.roleWord}>You are the spy</Text>
+          <Text style={styles.roleBody}>You don't know the word. Blend in and work out what it is.</Text>
+          {state.settings.spyHint && pack && <Text style={styles.hintText}>The word is from {pack.title}</Text>}
+        </View>
       ) : (
-        <LinearGradient colors={['#2A2445', '#3C2F6E', '#493D73']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.roleCard}>
-          <Text style={[type.label, { color: colors.primary }]}>The secret word</Text>
+        <View style={styles.roleCard}>
+          <Text style={type.label}>The secret word</Text>
           <Text style={styles.roleWord}>{state.word}</Text>
-          {pack && <Pill label={`${pack.emoji} ${pack.title}`} bg="rgba(17,20,29,0.5)" fg={colors.text} style={{ alignSelf: 'center', marginTop: 12 }} />}
-          <Text style={styles.roleBody}>
-            You're not the spy. Answer questions so your friends can tell you know the word, but don't give it away.
-          </Text>
-        </LinearGradient>
+          {pack && <Text style={styles.hintText}>{pack.title}</Text>}
+          <Text style={styles.roleBody}>You're not the spy. Show you know the word without giving it away.</Text>
+        </View>
       )}
       <Button
-        label={last ? 'HIDE & START TALKING' : `HIDE & PASS TO ${next.name.toUpperCase()}`}
+        label={last ? 'Hide and start talking' : `Hide and pass to ${next.name}`}
         icon="eye-off"
         size="lg"
         onPress={() => dispatch({ type: 'HIDE_ROLE', now: Date.now() })}
@@ -144,7 +124,6 @@ export function DiscussView({ state, dispatch, soundOn }: { state: SpyState; dis
   const [owningUp, setOwningUp] = useState(false);
   const warned = useRef(false);
   const timeUp = secondsLeft === 0;
-  const packs = state.settings.packIds.map(getPack).filter((p) => p != null);
 
   // Keep the screen on while people talk. Release only once the lock is actually held.
   useEffect(() => {
@@ -171,53 +150,42 @@ export function DiscussView({ state, dispatch, soundOn }: { state: SpyState; dis
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Progress state={state} done={state.settings.players.length} label="Everyone has peeked" />
-      <View style={[styles.clock, timeUp && { borderColor: colors.pinkStrong }]}>
-        <Text style={[type.label, { color: timeUp ? colors.pinkStrong : colors.coral }]}>
-          {timeUp ? "Time's up" : 'Discussion'}
-        </Text>
-        <Text style={[styles.clockValue, timeUp && { color: colors.pinkStrong }]}>
+      <Progress state={state} label="Discussion" />
+      <View style={styles.clock}>
+        <Text style={[styles.clockValue, timeUp && { color: colors.danger }]}>
           {mm}:{ss}
         </Text>
+        {timeUp && <Text style={[type.label, { color: colors.danger }]}>Time's up</Text>}
       </View>
 
-      <View style={styles.callout}>
-        <Avatar player={starter} size={40} />
-        <Text style={[type.body, { flex: 1, color: colors.text }]}>
-          <Text style={{ fontFamily: fonts.bold, color: starter.color }}>{starter.name}</Text> asks the first question. Whoever
-          answers asks the next one.
-        </Text>
-      </View>
+      <Text style={[type.body, styles.starter]}>
+        <Text style={{ fontFamily: fonts.semibold, color: colors.text }}>{starter.name}</Text> asks the first question.
+      </Text>
 
-      <View style={styles.tips}>
-        <Text style={[type.label, { marginBottom: 8 }]}>How to play</Text>
-        {[
-          'Ask anyone a question about the word, like "Would you find it in Mombasa?"',
-          'Answer so your friends know you know it, without making it easy for the spy.',
-          'Vague or odd answers are suspicious. So is too much silence.',
-        ].map((t, i) => (
-          <Text key={t} style={[type.body, { fontSize: 14 }]}>
-            <Text style={{ fontFamily: fonts.bold, color: colors.primary }}>{i + 1}. </Text>
-            {t}
-          </Text>
-        ))}
-        <View style={styles.packRow}>
-          {packs.map((p) => (
-            <Pill key={p.id} label={`${p.emoji} ${p.title}`} bg={colors.surfaceHigh} fg={colors.textMuted} />
+      <View style={{ marginTop: 16 }}>
+        <Disclosure title="How to play">
+          {[
+            'Ask anyone a question about the word, like "Would you find it in Mombasa?"',
+            'Answer so your friends know you know it, without making it easy for the spy.',
+            'Whoever answers asks the next question.',
+          ].map((t) => (
+            <Text key={t} style={[type.body, { fontSize: 14, marginTop: 4 }]}>
+              {t}
+            </Text>
           ))}
-        </View>
+        </Disclosure>
       </View>
 
       {state.settings.voting === 'secret' ? (
         <Button
-          label={timeUp ? 'VOTE NOW 🗳️' : 'READY TO VOTE 🗳️'}
+          label={timeUp ? 'Vote now' : 'Ready to vote'}
           size="lg"
           onPress={() => dispatch({ type: 'CALL_VOTE' })}
           style={{ marginTop: 24 }}
         />
       ) : (
         <>
-          <Text style={styles.askTitle}>Count down, point at the spy, then tap who got the most fingers.</Text>
+          <Text style={styles.askTitle}>Point at the spy, then tap who got the most fingers.</Text>
           <View style={styles.choiceGrid}>
             {state.settings.players.map((p) => (
               <PlayerChoice key={p.id} player={p} onPress={() => dispatch({ type: 'ACCUSE', playerId: p.id })} />
@@ -233,17 +201,11 @@ export function DiscussView({ state, dispatch, soundOn }: { state: SpyState; dis
           </Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
             <Button label="Cancel" variant="secondary" onPress={() => setOwningUp(false)} style={{ flex: 1 }} />
-            <Button label="I'm the spy" variant="pink" onPress={() => dispatch({ type: 'SPY_OWNS_UP' })} style={{ flex: 1 }} />
+            <Button label="I'm the spy" onPress={() => dispatch({ type: 'SPY_OWNS_UP' })} style={{ flex: 1 }} />
           </View>
         </View>
       ) : (
-        <Button
-          label="Spy: I know the word!"
-          icon="zap"
-          variant="ghost"
-          onPress={() => setOwningUp(true)}
-          style={{ marginTop: 12 }}
-        />
+        <Button label="Spy: I know the word" variant="ghost" onPress={() => setOwningUp(true)} style={{ marginTop: 12 }} />
       )}
     </ScrollView>
   );
@@ -255,9 +217,9 @@ function PlayerChoice({ player, onPress }: { player: SpyPlayer; onPress: () => v
       accessibilityRole="button"
       accessibilityLabel={player.name}
       onPress={onPress}
-      style={({ pressed }) => [styles.choice, pressed && { borderColor: player.color, transform: [{ scale: 0.98 }] }]}
+      style={({ pressed }) => [styles.choice, pressed && { borderColor: colors.primary }]}
     >
-      <Avatar player={player} size={40} />
+      <Avatar player={player} size={32} />
       <Text style={styles.choiceName} numberOfLines={1}>
         {player.name}
       </Text>
@@ -276,33 +238,24 @@ export function VoteView({ state, dispatch }: { state: SpyState; dispatch: Dispa
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Progress state={state} done={state.voterIndex} label={`Ballot ${state.voterIndex + 1} of ${players.length}`} />
+      <Progress state={state} label={`Vote ${state.voterIndex + 1} of ${players.length}`} />
       {state.runoff && (
-        <View style={[styles.callout, { borderColor: colors.coral }]}>
-          <Icon name="alert-triangle" size={18} color={colors.coral} />
-          <Text style={[type.body, { flex: 1, color: colors.text }]}>
-            <Text style={{ fontFamily: fonts.bold }}>It's a tie! </Text>
-            Runoff between {runoffNames.join(', ')}. Another tie and the spy walks free.
-          </Text>
-        </View>
+        <Text style={[type.body, styles.notice]}>
+          Tie. Runoff between {runoffNames.join(', ')}. Another tie and the spy walks free.
+        </Text>
       )}
       {!ready ? (
         <>
           <View style={styles.handoff}>
-            <Pill label="SECRET BALLOT" icon="lock" bg="#3A2F55" fg={colors.primary} style={{ alignSelf: 'center' }} />
             <BigAvatar player={voter} />
             <Text style={styles.handoffName}>{voter.name}</Text>
-            <Text style={styles.handoffSub}>who do you think is the spy?</Text>
-            <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
-              Take the phone and vote where nobody can see.
-            </Text>
+            <Text style={styles.handoffSub}>Take the phone and vote where nobody can see.</Text>
           </View>
-          <Button label={`I'M ${voter.name.toUpperCase()}, LET ME VOTE`} size="lg" onPress={() => setReady(true)} />
+          <Button label={`I'm ${voter.name}, let me vote`} size="lg" onPress={() => setReady(true)} />
         </>
       ) : (
         <>
-          <Text style={styles.voteTitle}>{voter.name}, tap the spy</Text>
-          <Text style={[type.body, { marginBottom: 16 }]}>Your vote stays secret until everyone has voted.</Text>
+          <Text style={styles.voteTitle}>{voter.name}, who is the spy?</Text>
           <View style={styles.choiceGrid}>
             {choices.map((id) => {
               const p = getPlayer(state, id)!;
@@ -323,50 +276,32 @@ export function VerdictView({ state, dispatch }: { state: SpyState; dispatch: Di
       <View style={styles.handoff}>
         {accused ? (
           <>
-            <Pill label="THE GROUP HAS SPOKEN" icon="users" bg={colors.orange} fg="#FFE4D8" style={{ alignSelf: 'center' }} />
             <BigAvatar player={accused} />
-            <Text style={styles.handoffName}>{accused.name}</Text>
-            <Text style={styles.handoffSub}>is voted out</Text>
-            <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
-              {accused.name}, any last words? Then reveal if you were the spy.
-            </Text>
+            <Text style={styles.handoffName}>{accused.name} is voted out</Text>
+            <Text style={styles.handoffSub}>Any last words? Then reveal if you were the spy.</Text>
           </>
         ) : (
           <>
-            <Pill label="STILL TIED" icon="alert-triangle" bg={colors.orange} fg="#FFE4D8" style={{ alignSelf: 'center' }} />
-            <Text style={{ fontSize: 72, marginTop: 24 }}>🤷🏾</Text>
-            <Text style={[styles.handoffName, { fontSize: 32 }]}>Nobody is voted out</Text>
-            <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
-              The runoff tied too, so the spy slips away. Who was it?
-            </Text>
+            <Text style={styles.handoffName}>Nobody is voted out</Text>
+            <Text style={styles.handoffSub}>The runoff tied too, so the spy slips away.</Text>
           </>
         )}
       </View>
       {counts.length > 0 && (
         <View style={styles.tallyCard}>
-          <Text style={[type.label, { marginBottom: 10 }]}>{state.runoff ? 'Runoff votes' : 'Votes'}</Text>
+          <Text style={[type.label, { marginBottom: 6 }]}>{state.runoff ? 'Runoff votes' : 'Votes'}</Text>
           {counts.map(({ player, votes }) => (
             <View key={player.id} style={styles.tallyRow}>
-              <Avatar player={player} size={28} />
               <Text style={styles.tallyName} numberOfLines={1}>
                 {player.name}
               </Text>
-              <View style={styles.tallyTrack}>
-                <View
-                  style={[
-                    styles.tallyBar,
-                    { backgroundColor: player.color, width: `${(votes / state.settings.players.length) * 100}%` },
-                  ]}
-                />
-              </View>
               <Text style={styles.tallyVotes}>{votes}</Text>
             </View>
           ))}
         </View>
       )}
       <Button
-        label={accused ? `REVEAL ${accused.name.toUpperCase()}'S ROLE` : 'REVEAL THE SPY'}
-        icon="eye"
+        label={accused ? `Reveal ${accused.name}'s role` : 'Reveal the spy'}
         size="lg"
         onPress={() => dispatch({ type: 'REVEAL' })}
         style={{ marginTop: 24 }}
@@ -380,17 +315,9 @@ export function SpyGuessView({ state, dispatch }: { state: SpyState; dispatch: D
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.handoff}>
-        <Pill
-          label={state.guessEarly ? 'THE SPY OWNS UP' : 'SPY CAUGHT!'}
-          icon="eye"
-          bg={colors.pinkStrong}
-          fg="#3D0020"
-          style={{ alignSelf: 'center' }}
-        />
         <BigAvatar player={spy} />
-        <Text style={styles.handoffName}>{spy.name} 🕵🏾</Text>
-        <Text style={styles.handoffSub}>{state.guessEarly ? 'thinks they cracked it' : 'was the spy all along'}</Text>
-        <Text style={[type.body, { textAlign: 'center', marginTop: 10 }]}>
+        <Text style={styles.handoffName}>{state.guessEarly ? `${spy.name} owns up` : `${spy.name} was the spy`}</Text>
+        <Text style={styles.handoffSub}>
           {state.guessEarly
             ? 'Name the secret word to win the round. Get it wrong and everyone else scores.'
             : 'One last chance: name the secret word and steal the round.'}
@@ -402,7 +329,7 @@ export function SpyGuessView({ state, dispatch }: { state: SpyState; dispatch: D
             key={word}
             accessibilityRole="button"
             onPress={() => dispatch({ type: 'SPY_GUESS', word })}
-            style={({ pressed }) => [styles.wordChoice, pressed && { borderColor: colors.pink, transform: [{ scale: 0.98 }] }]}
+            style={({ pressed }) => [styles.wordChoice, pressed && { borderColor: colors.primary }]}
           >
             <Text style={styles.wordChoiceText}>{word}</Text>
           </Pressable>
@@ -414,23 +341,23 @@ export function SpyGuessView({ state, dispatch }: { state: SpyState; dispatch: D
 
 const OUTCOME_COPY: Record<SpyOutcome, { title: string; body: (spy: string, guess: string | null) => string }> = {
   'spy-escaped': {
-    title: 'THE SPY GOT AWAY! 🕵🏾',
+    title: 'The spy got away',
     body: (spy) => `${spy} fooled everyone and scores 2 points.`,
   },
   'spy-caught': {
-    title: 'SPY CAUGHT! 🎉',
+    title: 'Spy caught',
     body: (spy, guess) => `${spy} guessed "${guess}" and missed. Everyone else scores a point.`,
   },
   'spy-stole': {
-    title: 'CAUGHT, BUT STOLE IT! 😱',
+    title: 'Caught, but stole it',
     body: (spy) => `${spy} was voted out but named the word, so takes 2 points.`,
   },
   'spy-guessed': {
-    title: 'THE SPY CRACKED IT! 🕵🏾',
+    title: 'The spy cracked it',
     body: (spy) => `${spy} owned up and named the word. 3 points to the spy.`,
   },
   'spy-blundered': {
-    title: 'BOLD MOVE, WRONG WORD 😅',
+    title: 'Wrong word',
     body: (spy, guess) => `${spy} owned up and guessed "${guess}". Everyone else scores a point.`,
   },
 };
@@ -442,35 +369,30 @@ export function RoundOverView({ state, dispatch }: { state: SpyState; dispatch: 
   const copy = OUTCOME_COPY[record.outcome];
   const won = spyWon(record.outcome);
   const decided = matchDecided(state);
-  const pack = getPack(record.packId);
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <LinearGradient
-        colors={won ? ['#3D0020', '#640039', '#B83900'] : ['#2A2445', '#3C2F6E', '#493D73']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.roleCard}
-      >
-        <Pill label={`ROUND ${record.round} • ${won ? 'SPY WINS' : 'GROUP WINS'}`} bg="rgba(17,20,29,0.5)" fg={colors.text} style={{ alignSelf: 'center' }} />
-        <Text style={[styles.roleWord, { fontSize: 28 }]}>{copy.title}</Text>
+      <View style={styles.roleCard}>
+        <Text style={type.label}>
+          Round {record.round} · {won ? 'Spy wins' : 'Group wins'}
+        </Text>
+        <Text style={styles.outcomeTitle}>{copy.title}</Text>
         <Text style={styles.roleBody}>{copy.body(spy.name, record.spyGuess)}</Text>
         {record.outcome === 'spy-escaped' && (
           <Text style={[styles.roleBody, { marginTop: 4 }]}>
             {accused ? `${accused.name} was innocent.` : 'The vote ended in a tie.'}
           </Text>
         )}
-      </LinearGradient>
+      </View>
 
       <View style={styles.reveal}>
         <View style={{ flex: 1 }}>
           <Text style={type.label}>The word was</Text>
           <Text style={styles.revealWord}>{record.word}</Text>
-          {pack && <Text style={styles.revealPack}>{pack.emoji} {pack.title}</Text>}
         </View>
-        <View style={{ alignItems: 'center' }}>
-          <Avatar player={spy} size={52} />
-          <Text style={styles.revealSpy}>Spy: {spy.name}</Text>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={type.label}>Spy</Text>
+          <Text style={styles.revealSpy}>{spy.name}</Text>
         </View>
       </View>
 
@@ -484,10 +406,9 @@ export function RoundOverView({ state, dispatch }: { state: SpyState; dispatch: 
           const gained = record.points[player.id] ?? 0;
           return (
             <View key={player.id} style={styles.tableRow}>
-              <Avatar player={player} size={28} />
+              <Avatar player={player} size={24} />
               <Text style={styles.tallyName} numberOfLines={1}>
                 {player.name}
-                {player.id === spy.id && ' 🕵🏾'}
               </Text>
               <Text style={[styles.col, styles.gained, gained > 0 && { color: colors.success }]}>
                 {gained > 0 ? `+${gained}` : '0'}
@@ -499,22 +420,15 @@ export function RoundOverView({ state, dispatch }: { state: SpyState; dispatch: 
       </View>
 
       {decided ? (
-        <Button label="SEE WHO WON 🏆" size="lg" onPress={() => dispatch({ type: 'END_GAME' })} style={{ marginTop: 24 }} />
+        <Button label="See who won" size="lg" onPress={() => dispatch({ type: 'END_GAME' })} style={{ marginTop: 24 }} />
       ) : (
         <>
-          <Button
-            label={`NEXT ROUND • NEW SPY`}
-            icon="rotate-cw"
-            size="lg"
-            onPress={() => dispatch({ type: 'NEXT_ROUND' })}
-            style={{ marginTop: 24 }}
-          />
+          <Button label="Next round" size="lg" onPress={() => dispatch({ type: 'NEXT_ROUND' })} style={{ marginTop: 24 }} />
           <Button
             label="End the game"
-            icon="flag"
-            variant="secondary"
+            variant="ghost"
             onPress={() => dispatch({ type: 'END_GAME' })}
-            style={{ marginTop: 12 }}
+            style={{ marginTop: 8 }}
           />
         </>
       )}
@@ -525,73 +439,29 @@ export function RoundOverView({ state, dispatch }: { state: SpyState; dispatch: 
 const styles = StyleSheet.create({
   page: { padding: 20, paddingBottom: 40 },
   avatar: { alignItems: 'center', justifyContent: 'center' },
-  progress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.surfaceLow,
-    borderRadius: radius.lg,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.surfaceHigh,
-  },
-  dots: { flexDirection: 'row', gap: 4, flex: 1, flexWrap: 'wrap' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.surfaceHighest },
-  progressText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.textMuted },
-  handoff: { alignItems: 'center', paddingVertical: 28 },
+  progress: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  progressText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textDim },
+  handoff: { alignItems: 'center', paddingVertical: 32 },
   bigAvatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
-    shadowOpacity: 0.5,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
+    marginBottom: 16,
   },
-  handoffName: { fontFamily: fonts.display, color: colors.text, fontSize: 40, marginTop: 20, textAlign: 'center', letterSpacing: -0.8 },
-  handoffSub: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 16, marginTop: 2 },
-  roleCard: { borderRadius: radius.lg, padding: 24, marginTop: 20, alignItems: 'center' },
-  roleWord: { fontFamily: fonts.display, color: colors.text, fontSize: 40, textAlign: 'center', marginTop: 8, letterSpacing: -0.8 },
-  roleBody: { fontFamily: fonts.medium, color: colors.textMuted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 14 },
-  hint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(17,20,29,0.5)',
-    borderRadius: radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginTop: 16,
-  },
-  hintText: { fontFamily: fonts.bold, color: colors.text, fontSize: 13 },
-  clock: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    paddingVertical: 20,
-    marginTop: 20,
-    borderWidth: 1.5,
-    borderColor: colors.surfaceHigh,
-  },
+  handoffName: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 24, textAlign: 'center' },
+  handoffSub: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 15, lineHeight: 22, marginTop: 6, textAlign: 'center' },
+  roleCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 24, marginTop: 20, alignItems: 'center' },
+  roleWord: { fontFamily: fonts.display, color: colors.text, fontSize: 40, textAlign: 'center', marginTop: 8, letterSpacing: -0.5 },
+  roleBody: { fontFamily: fonts.body, color: colors.textMuted, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 14 },
+  hintText: { fontFamily: fonts.medium, color: colors.textDim, fontSize: 14, marginTop: 8, textAlign: 'center' },
+  clock: { alignItems: 'center', paddingVertical: 24 },
   clockValue: { fontFamily: fonts.display, color: colors.text, fontSize: 64, letterSpacing: -1 },
-  callout: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.surfaceLow,
-    borderRadius: radius.md,
-    padding: 14,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: colors.surfaceHigh,
-  },
-  tips: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 18, gap: 6, marginTop: 16 },
-  packRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  askTitle: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 18, marginTop: 24, marginBottom: 12 },
-  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  starter: { textAlign: 'center' },
+  notice: { marginTop: 16, color: colors.text },
+  askTitle: { fontFamily: fonts.semibold, color: colors.text, fontSize: 16, marginTop: 24, marginBottom: 12 },
+  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: {
     flexBasis: '47%',
     flexGrow: 1,
@@ -599,32 +469,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     padding: 12,
     borderWidth: 1.5,
     borderColor: colors.surface,
   },
-  choiceName: { flex: 1, fontFamily: fonts.bold, color: colors.text, fontSize: 15 },
+  choiceName: { flex: 1, fontFamily: fonts.semibold, color: colors.text, fontSize: 15 },
   ownUp: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, marginTop: 16 },
-  voteTitle: { fontFamily: fonts.display, color: colors.text, fontSize: 28, marginTop: 24 },
+  voteTitle: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 22, marginTop: 24, marginBottom: 16 },
   wordChoice: {
     flexBasis: '47%',
     flexGrow: 1,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     paddingVertical: 18,
     paddingHorizontal: 12,
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: colors.surface,
   },
-  wordChoiceText: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 16, textAlign: 'center' },
+  wordChoiceText: { fontFamily: fonts.semibold, color: colors.text, fontSize: 16, textAlign: 'center' },
   tallyCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, marginTop: 16 },
   tallyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-  tallyName: { width: 96, fontFamily: fonts.semibold, color: colors.text, fontSize: 14, flexGrow: 1 },
-  tallyTrack: { flex: 2, height: 8, borderRadius: 4, backgroundColor: colors.surfaceHighest, overflow: 'hidden' },
-  tallyBar: { height: 8, borderRadius: 4 },
-  tallyVotes: { width: 20, textAlign: 'right', fontFamily: fonts.display, color: colors.text, fontSize: 16 },
+  tallyName: { flex: 1, fontFamily: fonts.medium, color: colors.text, fontSize: 14 },
+  tallyVotes: { fontFamily: fonts.semibold, color: colors.text, fontSize: 15 },
+  outcomeTitle: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 22, textAlign: 'center', marginTop: 8 },
   reveal: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -634,12 +503,11 @@ const styles = StyleSheet.create({
     padding: 18,
     marginTop: 16,
   },
-  revealWord: { fontFamily: fonts.display, color: colors.primary, fontSize: 28, marginTop: 4 },
-  revealPack: { fontFamily: fonts.semibold, color: colors.textMuted, fontSize: 13, marginTop: 2 },
-  revealSpy: { fontFamily: fonts.bold, color: colors.pink, fontSize: 12, marginTop: 6 },
+  revealWord: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 22, marginTop: 4 },
+  revealSpy: { fontFamily: fonts.semibold, color: colors.text, fontSize: 16, marginTop: 4 },
   tableHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   tableRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
   col: { width: 54, textAlign: 'right' },
-  gained: { fontFamily: fonts.bold, color: colors.textDim, fontSize: 15 },
-  total: { fontFamily: fonts.display, color: colors.text, fontSize: 18 },
+  gained: { fontFamily: fonts.semibold, color: colors.textDim, fontSize: 15 },
+  total: { fontFamily: fonts.semibold, color: colors.text, fontSize: 16 },
 });

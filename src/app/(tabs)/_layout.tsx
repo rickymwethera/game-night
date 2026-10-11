@@ -10,7 +10,6 @@ type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tab
 const TABS: Record<string, { label: string; icon: IconName }> = {
   index: { label: 'Home', icon: 'grid' },
   games: { label: 'Games', icon: 'layout' },
-  decks: { label: 'Decks', icon: 'layers' },
   history: { label: 'History', icon: 'award' },
 };
 
@@ -52,7 +51,6 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="games" />
-      <Tabs.Screen name="decks" />
       <Tabs.Screen name="history" />
     </Tabs>
   );
