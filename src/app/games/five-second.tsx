@@ -9,7 +9,7 @@ import {
   type FiveSettings,
   type FiveState,
 } from '../../games/five-second/engine';
-import { HandoffView, PlayingView, VerdictView } from '../../games/five-second/PlayViews';
+import { HandoffView, JudgeView, PlayingView, VerdictView } from '../../games/five-second/PlayViews';
 import { ResultsView } from '../../games/five-second/ResultsView';
 import { SetupView } from '../../games/five-second/SetupView';
 
@@ -66,6 +66,7 @@ export default function FiveSecondScreen() {
       />
       {state.phase === 'handoff' && <HandoffView key={state.history.length} state={state} dispatch={dispatch} soundOn={soundOn} />}
       {state.phase === 'playing' && <PlayingView key={state.endsAt} state={state} dispatch={dispatch} soundOn={soundOn} />}
+      {state.phase === 'judge' && <JudgeView state={state} dispatch={dispatch} />}
       {state.phase === 'verdict' && <VerdictView key={state.attempts.length} state={state} dispatch={dispatch} soundOn={soundOn} />}
       {state.phase === 'gameOver' && (
         <ResultsView state={state} dispatch={dispatch} onChooseGame={() => router.replace('/games')} />

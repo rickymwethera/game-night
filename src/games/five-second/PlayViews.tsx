@@ -1,9 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { Button, Icon, type } from '../../components/ui';
+import { Button, type } from '../../components/ui';
 import { colors, fonts, radius } from '../../theme';
 import {
   ANSWERS_NEEDED,
@@ -28,6 +28,12 @@ function buzz(enabled: boolean, kind: 'success' | 'warning' | 'light') {
     Haptics.notificationAsync(
       kind === 'success' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning,
     ).catch(() => {});
+}
+
+/** A long double buzz when the clock hits zero, so the room feels the buzzer. */
+function buzzer(enabled: boolean) {
+  if (!enabled || Platform.OS === 'web') return;
+  Vibration.vibrate(Platform.OS === 'android' ? [0, 500, 150, 500] : [0, 300]);
 }
 
 /** A 3-2-1 lead-in so the player is looking before the prompt appears. */
@@ -95,7 +101,7 @@ export function HandoffView({ state, dispatch, soundOn }: { state: FiveState; di
           Round {state.round} of {rounds} · turn {state.playerIndex + 1} of {players.length}
         </Text>
         <Text style={[type.body, { textAlign: 'center', marginTop: 12 }]}>
-          Name {ANSWERS_NEEDED} before time runs out. Everyone else taps once per answer.
+          Name {ANSWERS_NEEDED} out loud before time runs out. Everyone else listens and makes the call.
         </Text>
       </View>
       <Button label="I'm ready" size="lg" onPress={ready.start} />
@@ -148,7 +154,6 @@ export function PlayingView({ state, dispatch, soundOn }: { state: FiveState; di
   const player = responder(state);
   const total = state.settings.seconds * 1000;
   const [msLeft, setMsLeft] = useState(total);
-  const lastWarned = useRef<number | null>(null);
 
   // Keep the screen on during a turn. Release only once the lock is actually held.
   useEffect(() => {
@@ -169,13 +174,8 @@ export function PlayingView({ state, dispatch, soundOn }: { state: FiveState; di
     const tick = () => {
       const left = Math.max(0, endsAt - Date.now());
       setMsLeft(left);
-      const whole = Math.ceil(left / 1000);
-      if (left > 0 && lastWarned.current !== whole) {
-        lastWarned.current = whole;
-        buzz(soundOn, 'light');
-      }
       if (left === 0) {
-        buzz(soundOn, 'warning');
+        buzzer(soundOn);
         dispatch({ type: 'TIME_UP' });
       }
     };
@@ -200,40 +200,34 @@ export function PlayingView({ state, dispatch, soundOn }: { state: FiveState; di
 
       <View style={styles.promptCard}>
         <Text style={styles.nameLabel}>Name {ANSWERS_NEEDED}</Text>
-        <Text style={styles.prompt} adjustsFontSizeToFit numberOfLines={4}>
+        <Text style={styles.prompt}>
           {state.prompt?.text}
         </Text>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Count an answer, ${state.count} of ${ANSWERS_NEEDED}`}
-        onPress={() => {
-          buzz(soundOn, state.count + 1 >= ANSWERS_NEEDED ? 'success' : 'light');
-          dispatch({ type: 'TALLY', now: Date.now() });
-        }}
-        style={({ pressed }) => [styles.tapZone, pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }]}
-      >
-        <View style={styles.dots}>
-          {Array.from({ length: ANSWERS_NEEDED }, (_, i) => (
-            <View key={i} style={[styles.dot, i < state.count && styles.dotOn]}>
-              {i < state.count && <Icon name="check" size={20} color={colors.primary} />}
-            </View>
-          ))}
-        </View>
-        <Text style={styles.tapText}>Tap for each answer</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => dispatch({ type: 'UNTALLY' })}
-        disabled={state.count === 0}
-        hitSlop={8}
-        style={[styles.undo, { opacity: state.count === 0 ? 0.35 : 1 }]}
-      >
-        <Icon name="corner-up-left" size={14} color={colors.textDim} />
-        <Text style={styles.undoText}>Undo</Text>
-      </Pressable>
     </View>
+  );
+}
+
+export function JudgeView({ state, dispatch }: { state: FiveState; dispatch: Dispatch }) {
+  const player = responder(state);
+  return (
+    <ScrollView contentContainerStyle={styles.page}>
+      <View style={styles.handoff}>
+        <Text style={[styles.status, { color: colors.danger }]}>Time's up</Text>
+        <Text style={styles.judgeQuestion}>
+          Did {player.name} name {ANSWERS_NEEDED}?
+        </Text>
+      </View>
+      <View style={styles.recap}>
+        <Text style={type.label}>Name {ANSWERS_NEEDED}</Text>
+        <Text style={styles.recapPrompt}>{state.prompt?.text}</Text>
+      </View>
+      <View style={styles.judgeRow}>
+        <Button label="No" variant="secondary" size="lg" onPress={() => dispatch({ type: 'JUDGE', success: false })} style={{ flex: 1 }} />
+        <Button label="Yes, +1" size="lg" onPress={() => dispatch({ type: 'JUDGE', success: true })} style={{ flex: 1 }} />
+      </View>
+    </ScrollView>
   );
 }
 
@@ -248,19 +242,17 @@ export function VerdictView({ state, dispatch, soundOn }: { state: FiveState; di
   if (ready.count != null) return <GetReady count={ready.count} player={thief} />;
 
   const feedback = last.success ? colors.success : colors.danger;
-  const status = last.success ? (last.steal ? 'Stolen' : 'Nailed it') : last.count === 0 ? 'Brain freeze' : "Time's up";
+  const status = last.success ? (last.steal ? 'Stolen' : 'Nailed it') : 'Missed';
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.handoff}>
         <Text style={[styles.status, { color: feedback }]}>{status}</Text>
         <Text style={[styles.verdictBig, { color: feedback }]}>
-          {last.success ? '+1' : `${last.count}/${ANSWERS_NEEDED}`}
+          {last.success ? '+1' : '0'}
         </Text>
         <Text style={styles.handoffSub}>
-          {last.success
-            ? `${player.name}${last.ms != null ? ` did it in ${(last.ms / 1000).toFixed(1)}s` : ' gets the point'}`
-            : `${player.name} ran out of time`}
+          {last.success ? `${player.name} gets the point` : `No point for ${player.name}`}
         </Text>
       </View>
 
@@ -270,7 +262,7 @@ export function VerdictView({ state, dispatch, soundOn }: { state: FiveState; di
       </View>
 
       <Button
-        label={last.success ? 'Take the point back' : `Give ${player.name} the point`}
+        label={last.success ? 'Take the point back' : `Changed your mind? Give ${player.name} the point`}
         variant="ghost"
         size="sm"
         onPress={() => dispatch({ type: 'JUDGE', success: !last.success })}
@@ -332,44 +324,22 @@ const styles = StyleSheet.create({
   timerWrap: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginVertical: 12 },
   timerCenter: { position: 'absolute', alignItems: 'center' },
   timerValue: { fontFamily: fonts.display, color: colors.text, fontSize: 40, letterSpacing: -1 },
-  promptCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 22, alignItems: 'center' },
+  promptCard: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: 22, alignItems: 'center', justifyContent: 'center' },
   nameLabel: { ...type.label, fontSize: 13 },
   prompt: {
     fontFamily: fonts.display,
     color: colors.text,
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 40,
+    lineHeight: 46,
     textAlign: 'center',
     marginTop: 6,
     marginBottom: 6,
     letterSpacing: -0.5,
   },
-  tapZone: {
-    flex: 1,
-    minHeight: 140,
-    marginTop: 16,
-    borderRadius: radius.lg,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  dots: { flexDirection: 'row', gap: 16 },
-  dot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: colors.onPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotOn: { backgroundColor: colors.onPrimary },
-  tapText: { fontFamily: fonts.bold, color: colors.onPrimary, fontSize: 18 },
-  undo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14 },
-  undoText: { fontFamily: fonts.semibold, color: colors.textDim, fontSize: 13 },
   status: { fontFamily: fonts.semibold, fontSize: 15 },
   verdictBig: { fontFamily: fonts.display, fontSize: 56, marginTop: 8 },
+  judgeQuestion: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 28, marginTop: 8, textAlign: 'center' },
+  judgeRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
   recap: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 18, alignItems: 'center', gap: 6 },
   recapPrompt: { fontFamily: fonts.displayBold, color: colors.text, fontSize: 18, textAlign: 'center' },
 });

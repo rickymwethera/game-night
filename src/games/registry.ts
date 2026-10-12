@@ -80,7 +80,7 @@ export const GAMES: GameInfo[] = [
     players: '2–12 Players',
     rules: [
       'Pass the phone. A category pops up and the five seconds start.',
-      'Name three things that fit. Everyone else taps once for each answer.',
+      'Name three things out loud. When the buzzer goes, the group says if you made it.',
       'Miss, and the next player can steal the point. Most points wins.',
     ],
     tags: ['quick', 'brainy'],

@@ -5,9 +5,10 @@
  * sent between phones to keep everyone in sync.
  *
  * A turn goes: the phone is passed to the next player (handoff), the prompt
- * appears and the clock runs while the group taps once for each answer
- * (playing), then the group checks the call (verdict). If the player missed,
- * the next player in line can try to steal the point with a fresh clock.
+ * appears and the clock runs while they answer out loud (playing), the group
+ * says whether they named three (judge), then the result shows (verdict). If
+ * the player missed, the next player in line can try to steal the point with
+ * a fresh clock.
  */
 import { shuffle } from '../../core/types';
 import { FIVE_PACKS } from './packs';
@@ -37,11 +38,8 @@ export interface Prompt {
 
 export interface Attempt {
   playerId: string;
-  /** Answers tapped before the clock ran out. */
-  count: number;
+  /** The group agreed they named three in time. */
   success: boolean;
-  /** Time to the third answer, in ms. Null when the clock ran out. */
-  ms: number | null;
   steal: boolean;
 }
 
@@ -53,7 +51,7 @@ export interface TurnRecord {
   attempts: Attempt[];
 }
 
-export type FivePhase = 'handoff' | 'playing' | 'verdict' | 'gameOver';
+export type FivePhase = 'handoff' | 'playing' | 'judge' | 'verdict' | 'gameOver';
 
 export interface FiveState {
   phase: FivePhase;
@@ -66,8 +64,6 @@ export interface FiveState {
   prompt: Prompt | null;
   /** True while the next player is trying to steal. */
   stealing: boolean;
-  count: number;
-  startedAt: number | null;
   endsAt: number | null;
   /** Finished attempts in the current turn. */
   attempts: Attempt[];
@@ -77,11 +73,8 @@ export interface FiveState {
 
 export type FiveAction =
   | { type: 'START_TURN'; now: number }
-  /** The group heard one more good answer. The third one ends the attempt. */
-  | { type: 'TALLY'; now: number }
-  | { type: 'UNTALLY' }
   | { type: 'TIME_UP' }
-  /** From verdict: the group overrules the tally on the last attempt. */
+  /** From judge: the group's call on whoever just answered. From verdict: change that call. */
   | { type: 'JUDGE'; success: boolean }
   /** From verdict, after a miss: the next player tries the same prompt. */
   | { type: 'STEAL'; now: number }
@@ -129,8 +122,6 @@ export function createFiveGame(settings: FiveSettings, seed: number): FiveState 
     playerIndex: 0,
     prompt: null,
     stealing: false,
-    count: 0,
-    startedAt: null,
     endsAt: null,
     attempts: [],
     scores: Object.fromEntries(settings.players.map((p) => [p.id, 0])),
@@ -177,12 +168,7 @@ export function nextUp(state: FiveState): FivePlayer | null {
 }
 
 function startClock(state: FiveState, now: number): FiveState {
-  return { ...state, phase: 'playing', count: 0, startedAt: now, endsAt: now + state.settings.seconds * 1000 };
-}
-
-function finishAttempt(state: FiveState, success: boolean, ms: number | null): FiveState {
-  const attempt: Attempt = { playerId: responder(state).id, count: state.count, success, ms, steal: state.stealing };
-  return { ...state, phase: 'verdict', startedAt: null, endsAt: null, attempts: [...state.attempts, attempt] };
+  return { ...state, phase: 'playing', endsAt: now + state.settings.seconds * 1000 };
 }
 
 /** Take the next prompt, reshuffling a fresh deck when the current one runs out. */
@@ -202,21 +188,15 @@ export function fiveReducer(state: FiveState, action: FiveAction): FiveState {
       if (state.phase !== 'handoff') return state;
       return startClock(drawPrompt({ ...state, stealing: false, attempts: [] }), action.now);
     }
-    case 'TALLY': {
-      if (state.phase !== 'playing' || state.startedAt == null) return state;
-      const counted = { ...state, count: state.count + 1 };
-      if (counted.count < ANSWERS_NEEDED) return counted;
-      return finishAttempt(counted, true, Math.max(0, action.now - state.startedAt));
-    }
-    case 'UNTALLY': {
-      if (state.phase !== 'playing' || state.count === 0) return state;
-      return { ...state, count: state.count - 1 };
-    }
     case 'TIME_UP': {
       if (state.phase !== 'playing') return state;
-      return finishAttempt(state, false, null);
+      return { ...state, phase: 'judge', endsAt: null };
     }
     case 'JUDGE': {
+      if (state.phase === 'judge') {
+        const attempt: Attempt = { playerId: responder(state).id, success: action.success, steal: state.stealing };
+        return { ...state, phase: 'verdict', attempts: [...state.attempts, attempt] };
+      }
       if (state.phase !== 'verdict' || state.attempts.length === 0) return state;
       const attempts = state.attempts.map((a, i) =>
         i === state.attempts.length - 1 ? { ...a, success: action.success } : a,
@@ -243,7 +223,6 @@ export function fiveReducer(state: FiveState, action: FiveAction): FiveState {
         history,
         prompt: null,
         stealing: false,
-        count: 0,
         attempts: [],
         phase: next ? 'handoff' : 'gameOver',
         round: next && lastInRound ? state.round + 1 : state.round,
@@ -269,44 +248,17 @@ export function standings(state: FiveState): { player: FivePlayer; score: number
 }
 
 export interface MatchStats {
-  /** Attempts that reached three answers, steals included. */
+  /** Attempts the group called a success, steals included. */
   nailed: number;
   attempts: number;
   steals: number;
-  fastest?: { player: FivePlayer; prompt: string; ms: number };
-  /** Most successful steals. */
-  thief?: { player: FivePlayer; steals: number };
-  /** Most attempts that ended without a single answer. */
-  frozen?: { player: FivePlayer; times: number; prompt: string };
 }
 
 export function matchStats(state: FiveState): MatchStats {
-  const all = state.history.flatMap((t) => t.attempts.map((a) => ({ ...a, prompt: t.prompt.text })));
-  const won = all.filter((a) => a.success);
-
-  const quickest = won.filter((a) => a.ms != null).sort((a, b) => a.ms! - b.ms!)[0];
-
-  const best = <T>(items: T[], key: (item: T) => string) => {
-    const tally = new Map<string, T[]>();
-    for (const item of items) tally.set(key(item), [...(tally.get(key(item)) ?? []), item]);
-    return [...tally.entries()].sort((a, b) => b[1].length - a[1].length)[0];
-  };
-
-  const steals = won.filter((a) => a.steal);
-  const topThief = best(steals, (a) => a.playerId);
-  const freezes = all.filter((a) => !a.success && a.count === 0);
-  const topFrozen = best(freezes, (a) => a.playerId);
-
+  const all = state.history.flatMap((t) => t.attempts);
   return {
-    nailed: won.length,
+    nailed: all.filter((a) => a.success).length,
     attempts: all.length,
-    steals: steals.length,
-    fastest: quickest && { player: getPlayer(state, quickest.playerId)!, prompt: quickest.prompt, ms: quickest.ms! },
-    thief: topThief && { player: getPlayer(state, topThief[0])!, steals: topThief[1].length },
-    frozen: topFrozen && {
-      player: getPlayer(state, topFrozen[0])!,
-      times: topFrozen[1].length,
-      prompt: topFrozen[1][0].prompt,
-    },
+    steals: all.filter((a) => a.steal && a.success).length,
   };
 }
