@@ -45,6 +45,12 @@ Accounts stay switched off until the app has Supabase keys. To turn them on:
 
 New Supabase projects ask people to confirm their email before the first sign-in; the app tells them to check their inbox. You can turn that off under **Authentication > Sign In / Providers > Email**.
 
+## Show it on a TV
+
+Trivia can be shown on a TV or laptop while the host's phone runs the game. Open `/tv` on the web version of the app in the TV's browser; it shows a 4-letter code. On the phone, start Trivia, tap the TV button in the top bar and type the code. The TV then follows along with the question, the four answers, the timer, the reveal and the scores. Nothing needs to be tapped on the TV, and nobody needs an account.
+
+The phone and the TV talk through Supabase Realtime, so TV mode uses the same keys as accounts (see above) and both devices need internet. No database tables are needed. Once the web app is hosted (for example with `npx eas-cli@latest deploy`), set `EXPO_PUBLIC_TV_URL` in `.env.local` to its `/tv` address so the phone can tell the host where to go.
+
 ## Checks
 
 ```bash
