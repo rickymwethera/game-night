@@ -109,7 +109,15 @@ export function ProfileButton({ size = 40 }: { size?: number }) {
 export function AppHeader(
   props:
     | { variant: 'brand' }
-    | { variant: 'session'; title: string; onBack: () => void; backIcon?: IconName; hideProfile?: boolean },
+    | {
+        variant: 'session';
+        title: string;
+        onBack: () => void;
+        backIcon?: IconName;
+        hideProfile?: boolean;
+        /** Extra buttons before the profile button. */
+        right?: ReactNode;
+      },
 ) {
   if (props.variant === 'session') {
     return (
@@ -118,6 +126,7 @@ export function AppHeader(
         <Text style={styles.sessionTitle} numberOfLines={1}>
           {props.title}
         </Text>
+        {props.right}
         {!props.hideProfile && <ProfileButton />}
       </View>
     );

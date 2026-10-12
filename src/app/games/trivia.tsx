@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Confetti, FadeIn } from '../../components/motion';
+import { TvButton } from '../../components/TvButton';
 import { AppHeader, Screen } from '../../components/ui';
 import { earnsConfetti } from '../../core/celebrate';
 import { appActions } from '../../core/store';
+import { tvAvailable, useTvSender } from '../../core/tv';
 import {
   createTriviaGame,
   leaderboardEntries,
@@ -35,6 +37,9 @@ export default function TriviaScreen() {
   // The finished game that earned confetti, so a later game never inherits it.
   const [confettiFor, setConfettiFor] = useState<TriviaState | null>(null);
   const exit = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const tvScreen = useMemo(() => ({ game: 'trivia' as const, state: mode.kind === 'game' ? mode.state : null }), [mode]);
+  const tv = useTvSender(tvScreen);
+  const tvButton = tvAvailable ? <TvButton tv={tv} /> : undefined;
 
   // Save each finished game once, for the History tab, the home screen and the leaderboard.
   const saved = useRef<TriviaState | null>(null);
@@ -67,7 +72,7 @@ export default function TriviaScreen() {
   if (mode.kind === 'setup') {
     return (
       <Screen>
-        <AppHeader variant="session" title="Trivia" onBack={exit} />
+        <AppHeader variant="session" title="Trivia" onBack={exit} right={tvButton} />
         <SetupView
           initial={mode.settings}
           onStart={({ settings, soundOn: sound }) => {
@@ -88,6 +93,7 @@ export default function TriviaScreen() {
         title="Trivia"
         backIcon={state.phase === 'gameOver' ? 'arrow-left' : 'x'}
         onBack={() => (state.phase === 'gameOver' ? exit() : dispatch({ type: 'SETUP' }))}
+        right={tvButton}
       />
       <FadeIn key={state.phase === 'reveal' ? 'question' : state.phase}>
         {state.phase === 'handoff' && <HandoffView state={state} dispatch={dispatch} />}
