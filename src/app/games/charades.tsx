@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useReducer, useRef, useState } from 'react';
+import { FadeIn } from '../../components/motion';
 import { AppHeader, Screen } from '../../components/ui';
 import { appActions } from '../../core/store';
 import {
@@ -72,13 +73,15 @@ export default function CharadesScreen() {
         backIcon={state.phase === 'gameOver' ? 'arrow-left' : 'x'}
         onBack={() => (state.phase === 'gameOver' ? exit() : dispatch({ type: 'SETUP' }))}
       />
-      {state.phase === 'handoff' && <HandoffView state={state} dispatch={dispatch} />}
-      {state.phase === 'playing' && <PlayingView state={state} dispatch={dispatch} soundOn={soundOn} />}
-      {state.phase === 'turnSummary' && <TurnSummaryView state={state} dispatch={dispatch} />}
-      {state.phase === 'roundOver' && <RoundOverView state={state} dispatch={dispatch} />}
-      {state.phase === 'gameOver' && (
-        <ResultsView state={state} dispatch={dispatch} onChooseGame={() => router.replace('/games')} />
-      )}
+      <FadeIn key={state.phase}>
+        {state.phase === 'handoff' && <HandoffView state={state} dispatch={dispatch} />}
+        {state.phase === 'playing' && <PlayingView state={state} dispatch={dispatch} soundOn={soundOn} />}
+        {state.phase === 'turnSummary' && <TurnSummaryView state={state} dispatch={dispatch} />}
+        {state.phase === 'roundOver' && <RoundOverView state={state} dispatch={dispatch} />}
+        {state.phase === 'gameOver' && (
+          <ResultsView state={state} dispatch={dispatch} onChooseGame={() => router.replace('/games')} />
+        )}
+      </FadeIn>
     </Screen>
   );
 }

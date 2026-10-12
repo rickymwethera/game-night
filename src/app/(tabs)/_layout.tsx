@@ -47,7 +47,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={(props) => <BottomNav {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background }, animation: 'fade' }}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="games" />
