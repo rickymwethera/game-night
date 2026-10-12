@@ -165,20 +165,43 @@ test('the spy can own up early and guess', () => {
 test('rounds deal new words and stop at the planned count', () => {
   let s = createSpyGame(makeSettings(4, { rounds: 3 }), 5);
   const words = new Set<string>();
-  const spies: string[] = [];
   for (let r = 1; r <= 3; r++) {
     words.add(s.word);
-    spies.push(s.spyId);
     s = revealAll(s);
     s = run(s, { type: 'ACCUSE', playerId: s.spyId }, { type: 'REVEAL' }, { type: 'SPY_GUESS', word: 'nope' });
-    if (r < 3) s = run(s, { type: 'NEXT_ROUND' });
+    if (r < 3) s = run(s, { type: 'NEXT_ROUND', seed: r });
   }
   assert.equal(words.size, 3, 'no word repeats while the pack has fresh ones');
-  for (let i = 1; i < spies.length; i++) assert.notEqual(spies[i], spies[i - 1], 'no back-to-back spy');
-  assert.equal(run(s, { type: 'NEXT_ROUND' }), s, 'no round after the last one');
+  assert.equal(run(s, { type: 'NEXT_ROUND', seed: 9 }), s, 'no round after the last one');
   s = run(s, { type: 'END_GAME' });
   assert.equal(s.phase, 'gameOver');
   assert.equal(standings(s)[0].score, 3);
   assert.equal(matchStats(s).groupWins, 3);
-  assert.equal(run(s, { type: 'PLAY_AGAIN' }).round, 1);
+  assert.equal(run(s, { type: 'PLAY_AGAIN', seed: 10 }).round, 1);
+});
+
+test('the spy pick is random: no ordering pattern across rounds, and every player is picked evenly', () => {
+  const settings = makeSettings(5, { rounds: 50 });
+  const counts: Record<string, number> = {};
+  let steps = 0;
+  let downByOne = 0;
+  for (let g = 0; g < 200; g++) {
+    let s = createSpyGame(settings, g);
+    let prev = Number(s.spyId.slice(1));
+    // Consecutive seeds on purpose: that's what used to produce a walking pattern.
+    for (let r = 2; r <= 20; r++) {
+      s = run({ ...s, phase: 'roundOver' }, { type: 'NEXT_ROUND', seed: g * 100 + r });
+      const n = Number(s.spyId.slice(1));
+      counts[s.spyId] = (counts[s.spyId] ?? 0) + 1;
+      if (n === prev - 1) downByOne++;
+      steps++;
+      prev = n;
+    }
+  }
+  // A fair pick has the next spy one seat lower about 1 time in 5 (minus the wrap-around).
+  assert.ok(downByOne / steps < 0.25, `spy stepped down a seat ${downByOne} of ${steps} times`);
+  for (const id of ['p1', 'p2', 'p3', 'p4', 'p5']) {
+    const share = (counts[id] ?? 0) / steps;
+    assert.ok(share > 0.15 && share < 0.25, `${id} was spy ${(share * 100).toFixed(1)}% of rounds`);
+  }
 });

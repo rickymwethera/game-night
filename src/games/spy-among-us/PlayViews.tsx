@@ -8,6 +8,7 @@ import {
   currentVoter,
   getPlayer,
   matchDecided,
+  newSeed,
   revealPlayer,
   spyWon,
   standings,
@@ -423,7 +424,7 @@ export function RoundOverView({ state, dispatch }: { state: SpyState; dispatch: 
         <Button label="See who won" size="lg" onPress={() => dispatch({ type: 'END_GAME' })} style={{ marginTop: 24 }} />
       ) : (
         <>
-          <Button label="Next round" size="lg" onPress={() => dispatch({ type: 'NEXT_ROUND' })} style={{ marginTop: 24 }} />
+          <Button label="Next round" size="lg" onPress={() => dispatch({ type: 'NEXT_ROUND', seed: newSeed() })} style={{ marginTop: 24 }} />
           <Button
             label="End the game"
             variant="ghost"
