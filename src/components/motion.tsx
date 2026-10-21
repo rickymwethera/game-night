@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { colors, TEAM_PALETTE } from '../theme';
 
-function useReduceMotion(): boolean {
+export function useReduceMotion(): boolean {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled()

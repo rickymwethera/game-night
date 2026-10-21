@@ -107,10 +107,14 @@ export const GAMES: GameInfo[] = [
     tagline: 'Spin the wheel, face the music.',
     emoji: '🎡',
     icon: 'refresh-cw',
-    players: '3+ Players',
-    rules: ['Spin the wheel.', 'Do the dare or take the challenge.', 'Refuse and the group picks your forfeit.'],
+    players: '2–12 Players',
+    rules: [
+      'Pass the phone. Spin the wheel: dare, challenge, impression, performance or group task.',
+      'Do what the card says. The group decides if you pulled it off.',
+      'Done scores a point. Chicken out and you take a forfeit. Most points wins.',
+    ],
     tags: ['acting', 'social'],
-    available: false,
+    available: true,
   },
   {
     id: 'flags',
