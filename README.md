@@ -9,7 +9,7 @@ One app, endless party games. Built with React Native, Expo and TypeScript, so i
 | Charades | Playable |
 | Spy Among Us | Playable |
 | Trivia | Playable |
-| Dare or Challenge | Coming soon |
+| Dare or Challenge | Playable |
 | Who's Most Likely To? | Coming soon |
 | Five-Second Challenge | Coming soon |
 | Guess the Flag | Playable |
@@ -21,6 +21,8 @@ Trivia has 180 questions in six packs: Kenyan Culture, Kenyan Music, Football, G
 Charades ships with six decks (Kenyan Celebrities, Sheng, Kenyan Music, Football, Food, General), 2 to 4 named teams with players, actor rotation, 45/60/90 second turns, target points, an optional skip penalty, pause, a turn summary where a wrong tap can be fixed, and a results screen with MVPs and party highlights. Finished games are saved to the History tab on the phone.
 
 Spy Among Us is pass-the-phone for 3 to 10 players. Each player peeks at the secret word in turn, except the spy, who only sees which pack it comes from (the hint can be switched off). After a timed discussion, players vote by secret ballot or by pointing together; a tie goes to one runoff, and a second tie lets the spy escape. A caught spy gets one guess at the word from eight options to steal the round, and the spy can also own up mid-discussion to guess early. It ships with eight word packs: Kenyan Places, Kenyan Eats, Everyday Kenya, Music & Sport KE, Places, Food & Drink, Animals and Jobs.
+
+Dare or Challenge is pass-the-phone for 2 to 12 players. On your turn you spin a wheel that lands on Dare, Challenge, Impression, Perform or Group, each equally likely on every spin, and a card from that category comes up: things like a matatu tout impression, the chorus of a Sauti Sol song, or speaking only Sheng until your next turn. The group decides if you did it for a point; chicken out and you get a forfeit. It ships with 118 family-friendly cards and 34 adults-only ones, which only appear when 18+ content is switched on in Profile. Pick which categories go on the wheel and how many rounds to play.
 
 The look follows the Figma designs (dark Material-style palette, Bricolage Grotesque headings, Plus Jakarta Sans body text). Images in `assets/images/` were cropped from the exported design screens and should be swapped for the original files.
 
