@@ -53,6 +53,10 @@ Trivia can be shown on a TV or laptop while the host's phone runs the game. Open
 
 The phone and the TV talk through Supabase Realtime, so TV mode uses the same keys as accounts (see above) and both devices need internet. No database tables are needed. Once the web app is hosted (for example with `npx eas-cli@latest deploy`), set `EXPO_PUBLIC_TV_URL` in `.env.local` to its `/tv` address so the phone can tell the host where to go.
 
+## Release on Google Play
+
+`eas.json` has a `production` profile that builds the Android App Bundle Google Play needs. Store art (icon, feature graphic, screenshots) is in `docs/play-store/`, and the privacy policy is `docs/privacy-policy.md`. [docs/google-play-release.md](docs/google-play-release.md) walks through the whole release, from the Play Console account to the closed test and production.
+
 ## Checks
 
 ```bash
